@@ -1,0 +1,5 @@
+*.exe
+a.out
+*.txt
+*.csv
+*.(png|jpg|gif)
