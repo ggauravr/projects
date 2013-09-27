@@ -2,4 +2,8 @@
 a.out
 *.txt
 *.csv
-*.(png|jpg|gif)
+*.png
+*.jpg
+*.gif
+*.pyc
+*.o

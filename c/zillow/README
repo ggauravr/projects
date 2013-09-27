@@ -1,0 +1,26 @@
+##############################################
+	
+String to Long Conversion Program	
+
+##############################################
+
+- takes octal, decimal or hexadecimal input, preceded by '-' if negative, '+' for positive numbers is optional
+- output is the decimal value of the input, irrespective of the base of the input
+- if the value of input string falls out of range of long int of the system, either positive or negative limit, the program returns -1
+
+- to execute
+
+	g++ strnum_driver.cpp strnum.cpp
+
+
+##############################################
+	
+Tri-nary Tree Insertion and Removal Program
+
+##############################################
+
+- accepts data of comparable type and the keys should be of the same data type
+
+- to execute
+	
+	g++ trinary_driver.cpp
