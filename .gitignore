@@ -7,3 +7,7 @@ a.out
 *.gif
 *.pyc
 *.o
+*.html
+*.htm
+*.sgml
+*.sgm
