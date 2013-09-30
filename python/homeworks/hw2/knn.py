@@ -9,6 +9,7 @@ from numpy import array
 from math import sqrt
 import time
 import random
+import numpy
 
 # Requirements:
 # 	- list of term_ids filtered using chi-square test
@@ -30,19 +31,21 @@ training_directory 		= 'testdata'
 def prepareTestAndTrainDocs():
 	global test_doc_id_list, train_doc_id_list
 
-	with open('test_data.csv', 'r') as fh:
+	with open('test_data (1).csv', 'r') as fh:
 		reader = csv.reader(fh)
 		for row in reader:
 			test_doc_id_list = ast.literal_eval(str(row))	# indices are term_ids as strings
 
-	rand_start = random.randint(0, len(test_doc_id_list)-1)
+	# rand_start = random.randint(0, len(test_doc_id_list)-600)
 
-	test_doc_id_list = test_doc_id_list[rand_start:rand_start+6]
+	test_doc_id_list = random.sample(test_doc_id_list, 50) # test_doc_id_list[rand_start:rand_start+200]
 
-	with open('train_data.csv', 'r') as fh:
+	with open('train_data (1).csv', 'r') as fh:
 		reader = csv.reader(fh)
 		for row in reader:
 			train_doc_id_list = ast.literal_eval(str(row))	# indices are term_ids as strings
+
+	# train_doc_id_list = train_doc_id_list[:6000]
 
 	# train_doc_id_list = train_doc_id_list[:20]
 # loads the term_ids of the terms selected by chi-square selection
@@ -144,12 +147,14 @@ def measureDistance(from_vector, to_vector):
 	index = 0
 
 	# len(from_vector) is the dimension of the feature vector
-	while index < len(from_vector):
-		result += ( from_vector[index] - to_vector[index]) ** 2 # euclidean distance.. sum of squares
-		index += 1
+	# while index < len(from_vector):
+	# 	result += ( from_vector[index] - to_vector[index]) ** 2 # euclidean distance.. sum of squares
+	# 	index += 1
 
-	result = sqrt(result) # root of the squared distance
+	# result = sqrt(result) # root of the squared distance
+	result = numpy.linalg.norm(numpy.array(to_vector) - numpy.array(from_vector))
 
+	# print "Distance is ", result
 	return result
 
 def preprocessDocument(document):
@@ -188,6 +193,8 @@ def main():
 
 	training_feature_vector = {}
 
+	startProgram = time.time()
+
 	start = time.time()
 	print "preparing training feature vectors "
 
@@ -203,10 +210,14 @@ def main():
 
 	# 	xml_helper.initialize(filepath)
 	# 	test_document_list = xml_helper.get_all('reuters')
-	
+	test_doc_index = 1
+	correctly_matched = {}
+
 	for test_doc_id in test_doc_id_list:
 		# print test_doc_id
 		start = time.time()
+
+		print "Starting Test Document ", test_doc_index
 
 		term_id_frequency_list = []
 
@@ -246,24 +257,26 @@ def main():
 		sorted_doc_distance = sorted(doc_distance_map.iteritems(), key=operator.itemgetter(1))
 		
 		# TODO : parameterize the number of nearest neighbors to be considered, k-nn
-		k = 5
+		k = 2
 		sorted_doc_distance = sorted_doc_distance[:k]
 		# print "Sorted Doc Distance ", sorted_doc_distance
-		end = time.time()
-		print "found distance for one test document in ", end-start, " s"
+		
+		# print "found distance for one test document in ", end-start, " s"
 		# print "Sorted Doc Distance for test document ", test_doc_id, " is ", sorted_doc_distance
 
 		# according to the parameter "k" extract the top k elements from the above list of tuples
 		class_list = []
 		class_set = set()
 		class_frequency_map = {}
-
+		
 		for item in sorted_doc_distance:
 			# append the class_list of top k documents to the set of probable class_list of the test data
 			# item[0] is the doc_id, item[1] is the distance
 			for class_item in doc_id_class_id_list[item[0]]:
 				# print class_item
 				class_list.append(class_item)
+				# print "class item ", class_item, " doc_id_class_id_list ", doc_id_class_id_list[test_doc_id]
+				
 			
 		class_set = set(class_list) # remove duplicate class_list
 
@@ -272,11 +285,25 @@ def main():
 		for class_item in class_set:
 			if not class_item in class_frequency_map:
 				class_frequency_map[class_item] = 0
-			class_frequency_map[class_item] += 1
+			class_frequency_map[class_item] = class_list.count(class_item)
+			if class_item in doc_id_class_id_list[test_doc_id]:
+					correctly_matched[test_doc_id] = 1
 
 		sorted_class_frequency = sorted(class_frequency_map.iteritems(), key=operator.itemgetter(1), reverse=True)
 
+		end = time.time()
 		print "test doc id ", test_doc_id, " sorted class frequency ", sorted_class_frequency
+		print "Actual Class of the document is ", doc_id_class_id_list[test_doc_id], " time taken is ", end-start, " s"
+		# print "processed one document in ", end-start, " s"
+		test_doc_index += 1
+
+	print "Correctly classified documents ", len(correctly_matched)
+
+	endProgram = time.time()
+	print "Program's total execution time is ", endProgram - startProgram, " s"
+
+
+	
 
 # start the program
 main()
