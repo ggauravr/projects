@@ -5,6 +5,7 @@ import xml_helper
 import csv
 import ast
 import operator
+from numpy import array
 
 # Requirements:
 # 	- list of term_ids filtered using chi-square test
@@ -198,9 +199,15 @@ def main():
 	training_feature_vector = {}
 
 	# for doc_id, term_id_frequency_list in doc_id_term_id_map.items():
+	list_list = []
 	for train_doc_id in train_doc_id_list:
 		# print "\nType ", type(ast.literal_eval(doc_id_term_id_map[doc_id]))
 		training_feature_vector[int(train_doc_id)] = prepareFeatureVector(doc_id_term_id_map[train_doc_id])
+		list_list.append(training_feature_vector[int(train_doc_id)])
+
+	numpy_array = array( list_list )
+	print numpy_array
+	return
 		# print "Training Feature Vector ", training_feature_vector[int(train_doc_id)]
 
 	# for filename in file_list:
