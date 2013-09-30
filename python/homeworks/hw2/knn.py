@@ -32,16 +32,17 @@ def prepareTestAndTrainDocs():
 		for row in reader:
 			test_doc_id_list = ast.literal_eval(str(row))
 
+	test_doc_id_list = test_doc_id_list[:25]
+
 	with open('train_data.csv', 'r') as fh:
 		reader = csv.reader(fh)
 
 		for row in reader:
 			train_doc_id_list = ast.literal_eval(str(row))
 
-	print test_doc_id_list, '\n\n'
-	print train_doc_id_list, '\n\n'
-
-prepareTestAndTrainDocs()
+	# print test_doc_id_list, '\n\n'
+	# print train_doc_id_list, '\n\n'
+# prepareTestAndTrainDocs()
 
 def prepareChiTermSet():
 
@@ -135,9 +136,9 @@ def prepareFeatureVector(p_term_id_frequency_list):
 
 		for term_id, frequency in p_term_id_frequency_list.items():
 			# print "Term Id and Frequency ",term_id, frequency
-
+			
 			if not term_id in chi_term_id_set:
-					continue;
+				continue;
 
 			index = term_id_index_map[term_id] # gives the index of the term
 			# print " Index ", index, '\n'
@@ -148,11 +149,13 @@ def prepareFeatureVector(p_term_id_frequency_list):
 def measureDistance(from_vector, to_vector):
 	# both should be of equal distance so iterate and measure the distance
 
-	result = 0;
+	result = 0
+	index = 0
 
-	for index in from_vector:
+	while index < len(from_vector):
 		result += pow( from_vector[index] - to_vector[index], 2) # euclidean distance.. sum of squares
-
+		index += 1
+	# print index
 	result = pow(result, 0.5) # root of the squared distance
 
 	return result
@@ -182,6 +185,7 @@ def main():
 	global doc_id_term_map
 	prepareChiTermSet()
 	prepareGlobalStructures()
+	prepareTestAndTrainDocs()
 
 	# print  doc_id_term_id_map
 
@@ -193,78 +197,87 @@ def main():
 
 	training_feature_vector = {}
 
-	for doc_id, term_id_frequency_list in doc_id_term_id_map.items():
+	# for doc_id, term_id_frequency_list in doc_id_term_id_map.items():
+	for train_doc_id in train_doc_id_list:
 		# print "\nType ", type(ast.literal_eval(doc_id_term_id_map[doc_id]))
+		training_feature_vector[int(train_doc_id)] = prepareFeatureVector(doc_id_term_id_map[train_doc_id])
+		# print "Training Feature Vector ", training_feature_vector[int(train_doc_id)]
 
-		training_feature_vector[doc_id] = prepareFeatureVector(term_id_frequency_list)
+	# for filename in file_list:
+	# 	filepath = file_helper.get_filepath(filename, test_directory_name)
 
-	for filename in file_list:
-		filepath = file_helper.get_filepath(filename, test_directory_name)
+	# 	xml_helper.initialize(filepath)
+	# 	test_document_list = xml_helper.get_all('reuters')
+	
+	for test_doc_id in test_doc_id_list:
+		# print test_doc_id
 
-		xml_helper.initialize(filepath)
-		test_document_list = xml_helper.get_all('reuters')
+		term_id_frequency_list = []
 
-		for test_document in test_document_list:
+		# token_results = preprocessDocument(test_document)
+		
+		# # preprocess.. get the clean tokens.. get the term_id, frequency list
+		# for term in token_results['set']:
+
+		# 	# calculate the term frequency
+		# 	if term in token_results['title']:
+		# 		# TODO : get the title weight from config file
+		# 		term_frequency = 3*token_results['title'].count(term)
+		# 	else:
+		# 		term_frequency = token_results['text'].count(term)
+
+		# 	term_frequency = int(term_frequency)
+
+		# 	# TODO : get the term_id_index_map from term_master file
+		# 	if not term in term_id_map:
+		# 		continue;
+
+		# 	term_id = term_id_map[term]
+		# 	# if term_id in chi_term_id_set:
+		# 	term_id_frequency_list.append({ term_id : term_frequency} )
 			
-			term_id_frequency_list = []
+		# call prepareFeatureVector to get the feature-vector for the current test document
+		test_feature_vector = prepareFeatureVector(doc_id_term_id_map[test_doc_id])
+		# print "TEst Feature Vector ", test_feature_vector
+		doc_distance_map = {}
 
-			token_results = preprocessDocument(test_document)
-			
-			# preprocess.. get the clean tokens.. get the term_id, frequency list
-			for term in token_results['set']:
+		# print doc_id_term_id_map
 
-				# calculate the term frequency
-				if term in token_results['title']:
-					# TODO : get the title weight from config file
-					term_frequency = 3*token_results['title'].count(term)
-				else:
-					term_frequency = token_results['text'].count(term)
+		# TODO : get the doc_id_term_map from doc_term file
+		for train_doc_id in train_doc_id_list:
+		# for doc_id, term_id_frequency_list in doc_id_term_id_map.items():
+			# print "\nType ", type(ast.literal_eval(doc_id_term_id_map[doc_id]))
+			# print "Training Doc ID",train_doc_id
+			# print "Feature Vector", training_feature_vector[int(train_doc_id)], '\n\n'
 
-				term_frequency = int(term_frequency)
+			distance = measureDistance(training_feature_vector[int(train_doc_id)], test_feature_vector)
+			# print "Test Doc ", test_doc_id, " Training Doc ID ", train_doc_id, " distance ", distance
+			doc_distance_map[train_doc_id] = distance
 
-				# TODO : get the term_id_index_map from term_master file
-				if not term in term_id_map:
-					continue;
+		# sort the map of {doc_id : distance} by distance -> list of (doc_id, distance) tuples
+		sorted_doc_distance = sorted(doc_distance_map.iteritems(), key=operator.itemgetter(1))
+		sorted_doc_distance = sorted_doc_distance[:5]
 
-				term_id = term_id_map[term]
-				# if term_id in chi_term_id_set:
-				term_id_frequency_list.append({ term_id : term_frequency} )
-				
-			# call prepareFeatureVector to get the feature-vector for the current test document
-			test_feature_vector = prepareFeatureVector(term_id_frequency_list)
-			doc_distance_map = {}
+		print "Test Doc ", test_doc_id, "Sorted Doc Distance", sorted_doc_distance
+		# according to the parameter "k" extract the top k elements from the above list of tuples
+		classes = []
+		k = 1;
 
-			# print doc_id_term_id_map
-
-			# TODO : get the doc_id_term_map from doc_term file
-			for doc_id, term_id_frequency_list in doc_id_term_id_map.items():
-				# print "\nType ", type(ast.literal_eval(doc_id_term_id_map[doc_id]))
-
-				distance = measureDistance(training_feature_vector[doc_id], test_feature_vector)
-				doc_distance_map[doc_id] = distance
-
-			# sort the map of {doc_id : distance} by distance -> list of (doc_id, distance) tuples
-			sorted_doc_distance = sorted(doc_distance_map.iteritems(), key=operator.itemgetter(1))
-			
-			# according to the parameter "k" extract the top k elements from the above list of tuples
-			classes = []
-			k = 1;
-
-			print "sorted doc distance " , type(sorted_doc_distance)
-			for item in sorted_doc_distance:
-				# append the classes of top k documents to the set of probable classes of the test data
-				# item[0] is the doc_id, item[1] is the distance
-				# TODO : get the classes given a doc_id
-				for class_item in doc_id_class_id_list[item[0]]:
-					print class_item
-					classes.append(class_item)
-				# classes.append(doc_id_class_id_list[item[0]])
-				# item[0].getClasses
-				# print item
-			# print classes
-			# classes = set(classes) # remove duplicate classes
-			# print "current test document might belong to the following classes", str(classes), '\n'
+		print "sorted doc distance " , type(sorted_doc_distance)
+		for item in sorted_doc_distance:
+			# append the classes of top k documents to the set of probable classes of the test data
+			# item[0] is the doc_id, item[1] is the distance
+			# TODO : get the classes given a doc_id
+			for class_item in doc_id_class_id_list[item[0]]:
+				# print class_item
+				classes.append(class_item)
+			# classes.append(doc_id_class_id_list[item[0]])
+			# item[0].getClasses
+			# print item
+		print classes, '\n'
+		classes = set(classes) # remove duplicate classes
+		print "Test Document ID ", test_doc_id, " might belong to this class " , str(classes), '\n'
 
 # start the program
-# main()
+main()
 # prepareGlobalStructures()
