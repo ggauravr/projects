@@ -6,144 +6,134 @@ import csv
 import ast
 import operator
 from numpy import array
+from math import sqrt
+import time
+import random
 
 # Requirements:
 # 	- list of term_ids filtered using chi-square test
 # 	- list of term : term_id mapping
 # 	- list of doc_id : classes_list mapping
 
-chi_term_id_set = set()
-term_id_index_map = {}
-doc_id_term_id_map = {}
-term_id_map = {}
-doc_id_class_id_list = {}
+chi_term_id_set 		= set()	# contains term ids of the terms selected by chi-square test
+term_id_index_map 	= {}	# contains the term ids selected by chi-square test and their indices from [0 to n-1]
+doc_id_term_id_map 	= {}	# contains the doc id and their corresponding term ids 
+term_term_id_map 		= {}	# contains the term(string) and the term ids
+doc_id_class_id_list 		= {}	# doc and their corresponsing classes
+test_doc_id_list 	 		= []	# list of document ids selected for testing
+train_doc_id_list 		= []	# list of document ids selected for training
 
-test_doc_id_list 	 = []
-train_doc_id_list = []
+test_directory 			= 'testdata'
+training_directory 		= 'testdata'
 
-test_directory_name = 'testdata'
-training_directory_name = 'testdata'
-
+# loads the list of testing and training document ids from relevant files
 def prepareTestAndTrainDocs():
 	global test_doc_id_list, train_doc_id_list
 
 	with open('test_data.csv', 'r') as fh:
 		reader = csv.reader(fh)
-
 		for row in reader:
-			test_doc_id_list = ast.literal_eval(str(row))
+			test_doc_id_list = ast.literal_eval(str(row))	# indices are term_ids as strings
 
-	test_doc_id_list = test_doc_id_list[:25]
+	rand_start = random.randint(0, len(test_doc_id_list)-1)
+
+	test_doc_id_list = test_doc_id_list[rand_start:rand_start+6]
 
 	with open('train_data.csv', 'r') as fh:
 		reader = csv.reader(fh)
-
 		for row in reader:
-			train_doc_id_list = ast.literal_eval(str(row))
+			train_doc_id_list = ast.literal_eval(str(row))	# indices are term_ids as strings
 
-	# print test_doc_id_list, '\n\n'
-	# print train_doc_id_list, '\n\n'
-# prepareTestAndTrainDocs()
-
+	# train_doc_id_list = train_doc_id_list[:20]
+# loads the term_ids of the terms selected by chi-square selection
 def prepareChiTermSet():
 
 	global chi_term_id_set
 
 	with open('final_term_list.csv', 'r') as f_chi_term_list:
 		reader = csv.reader(f_chi_term_list)
-
 		for row in reader:
-			# print row
 			temp_set = set(ast.literal_eval(str(row)))
 	
 		for item in temp_set:
-			chi_term_id_set.add(int(item))
+			chi_term_id_set.add(item)	# indices are term_ids as strings
+	# print chi_term_id_set
 
+# prepares the term_term_id_frequency and doc_term_id_frequency of the entire vocabulary
 def prepareGlobalStructures():
 
-	global term_id_map, doc_id_term_id_map, doc_id_class_id_list
+	global term_term_id_map, doc_id_term_id_map, doc_id_class_id_list
 
-	# open the term_id map file and load into a global map
+	# TODO : get these file names from the config file.. coz this file is written from other programs
 	with open('term_index_frequency_map.txt') as fh:
 		contents = fh.readlines()
 
 		for line in contents:
 			split_line = line.split(',')
+			term_term_id_map[split_line[0]] = split_line[1]
 
-			# term : term_id map
-			term_id_map[split_line[0]] = split_line[1]
-
-	# print term_id_index_map
-	# open the term_id map file and load into a global map
 	with open('doc_term_index_frequency_map.txt') as fh:
 		contents = fh.readlines()
 
 		for line in contents:
 			split_line = line.split('#')
 			classes = ast.literal_eval(split_line[2])
-			
-			# term : term_id map
-			if len(classes) > 0 :
-				doc_id_term_id_map[split_line[0]] = split_line[3] # ast.literal_eval(split_line[3])
+			if len(classes) > 0 :	# consider only those documents which have at least one class
+				doc_id_term_id_map[split_line[0]] = split_line[3]
 				doc_id_class_id_list[split_line[0]]    = classes
-	# print len(doc_id_term_id_map)
 
-
+# for the attributes in the chi-square selection, assigns sequential indices [0 to n-1], n - number of selected attributes
 def prepareTermIndexMap():
-	# get the chi_term_id_set
-	# create a {term_id, index} map
 	global term_id_index_map
 
 	index = 1;
 	for term_id in chi_term_id_set:
-		term_id_index_map[term_id] = index
+		term_id_index_map[term_id] = index 	# term_id is string here, coz chi_square indices are strings
 		index += 1
 
-
+# prepare a full feature vector from the the list of only terms occurring in the document, i.e from partial feature vector
+# given a list of terms with varying number of terms(say m or n), outputs a vector of length n, n - number of chi-square selected terms
 def prepareFeatureVector(p_term_id_frequency_list):
-	#	input
-	#		term_id_frequency_set 
-	#	output
-	#		feature_vector with k terms, with values equal to the frequency of occurrence
-
-	# initialize a zero vector
 
 	global term_id_index_map
 
 	feature_vector = [0] * (len(chi_term_id_set) + 1) # index started from 1, so allocate n+1 elements
 
-	if str(type(p_term_id_frequency_list)) == "<type 'list'>":
+	if type(p_term_id_frequency_list) is str:
+		# convert it into a dict and process
+		p_term_id_frequency_list = ast.literal_eval(p_term_id_frequency_list)
+		# print "converting str to dict"
+
+	if type(p_term_id_frequency_list) is list:
 		for term in p_term_id_frequency_list:
 			for term_id, frequency in term.items():
-				
+				# don't consider the term if the term is not selected in the feature selection process
 				if not term_id in chi_term_id_set:
 					continue;
 
 				index = term_id_index_map[term_id] # gives the index of the term
 				feature_vector[index] = frequency
-	elif str(type(p_term_id_frequency_list)) == "<type 'dict'>":
+	elif type(p_term_id_frequency_list) is dict:
+		
 		for term_id, frequency in p_term_id_frequency_list.items():
-
+			term_id = str(term_id)
+			# don't consider the term if the term is not selected in the feature selection process
 			if not term_id in chi_term_id_set:
 					continue;
 
 			index = term_id_index_map[term_id] # gives the index of the term
+			# print "term id , index and frequency ", term_id, "..", index, ".. ", frequency
 			feature_vector[index] = frequency
-	elif str(type(p_term_id_frequency_list)) == "<type 'str'>":
-		
-		# print p_term_id_frequency_list
+	# elif type(p_term_id_frequency_list) is str:
+	# 	# convert it into a list first
+	# 	p_term_id_frequency_list = ast.literal_eval(p_term_id_frequency_list)
+	# 	for term_id, frequency in p_term_id_frequency_list.items():
+	# 		# don't consider the term if the term is not selected in the feature selection process
+	# 		if not term_id in chi_term_id_set:
+	# 			continue;
 
-		p_term_id_frequency_list = ast.literal_eval(p_term_id_frequency_list)
-
-		for term_id, frequency in p_term_id_frequency_list.items():
-			# print "Term Id and Frequency ",term_id, frequency
-			
-			if not term_id in chi_term_id_set:
-				continue;
-
-			index = term_id_index_map[term_id] # gives the index of the term
-			# print " Index ", index, '\n'
-			feature_vector[index] = frequency
+	# 		index = term_id_index_map[term_id] # gives the index of the term
+	# 		feature_vector[index] = frequency
 
 	return feature_vector
 
@@ -153,11 +143,12 @@ def measureDistance(from_vector, to_vector):
 	result = 0
 	index = 0
 
+	# len(from_vector) is the dimension of the feature vector
 	while index < len(from_vector):
-		result += pow( from_vector[index] - to_vector[index], 2) # euclidean distance.. sum of squares
+		result += ( from_vector[index] - to_vector[index]) ** 2 # euclidean distance.. sum of squares
 		index += 1
-	# print index
-	result = pow(result, 0.5) # root of the squared distance
+
+	result = sqrt(result) # root of the squared distance
 
 	return result
 
@@ -184,40 +175,38 @@ def preprocessDocument(document):
 def main():
 	
 	global doc_id_term_map
+
+	# get chi-square terms, assign sequential indices to them
 	prepareChiTermSet()
+	prepareTermIndexMap();
+
 	prepareGlobalStructures()
 	prepareTestAndTrainDocs()
 
-	# print  doc_id_term_id_map
-
-	# call prepareTermIndexMap
-	prepareTermIndexMap();
-
 	# take records/ documents from test-data folder
-	file_list = file_helper.get_list_of_files(test_directory_name)
+	# file_list = file_helper.get_list_of_files(test_directory)
 
 	training_feature_vector = {}
 
-	# for doc_id, term_id_frequency_list in doc_id_term_id_map.items():
-	list_list = []
+	start = time.time()
+	print "preparing training feature vectors "
+
+	# prepare feature vectors for training documents beforehand
 	for train_doc_id in train_doc_id_list:
-		# print "\nType ", type(ast.literal_eval(doc_id_term_id_map[doc_id]))
-		training_feature_vector[int(train_doc_id)] = prepareFeatureVector(doc_id_term_id_map[train_doc_id])
-		list_list.append(training_feature_vector[int(train_doc_id)])
+		training_feature_vector[train_doc_id] = prepareFeatureVector(doc_id_term_id_map[train_doc_id])
+		# print "Training Feature Vector ", training_feature_vector[train_doc_id]
 
-	numpy_array = array( list_list )
-	print numpy_array
-	return
-		# print "Training Feature Vector ", training_feature_vector[int(train_doc_id)]
-
+	end = time.time()
+	print "preparing training feature vectors took ", end-start, " s"
 	# for filename in file_list:
-	# 	filepath = file_helper.get_filepath(filename, test_directory_name)
+	# 	filepath = file_helper.get_filepath(filename, test_directory)
 
 	# 	xml_helper.initialize(filepath)
 	# 	test_document_list = xml_helper.get_all('reuters')
 	
 	for test_doc_id in test_doc_id_list:
 		# print test_doc_id
+		start = time.time()
 
 		term_id_frequency_list = []
 
@@ -236,55 +225,58 @@ def main():
 		# 	term_frequency = int(term_frequency)
 
 		# 	# TODO : get the term_id_index_map from term_master file
-		# 	if not term in term_id_map:
+		# 	if not term in term_term_id_map:
 		# 		continue;
 
-		# 	term_id = term_id_map[term]
+		# 	term_id = term_term_id_map[term]
 		# 	# if term_id in chi_term_id_set:
 		# 	term_id_frequency_list.append({ term_id : term_frequency} )
 			
 		# call prepareFeatureVector to get the feature-vector for the current test document
 		test_feature_vector = prepareFeatureVector(doc_id_term_id_map[test_doc_id])
-		# print "TEst Feature Vector ", test_feature_vector
+		# print "Test Feature Vector ", test_feature_vector
 		doc_distance_map = {}
-
-		# print doc_id_term_id_map
 
 		# TODO : get the doc_id_term_map from doc_term file
 		for train_doc_id in train_doc_id_list:
-		# for doc_id, term_id_frequency_list in doc_id_term_id_map.items():
-			# print "\nType ", type(ast.literal_eval(doc_id_term_id_map[doc_id]))
-			# print "Training Doc ID",train_doc_id
-			# print "Feature Vector", training_feature_vector[int(train_doc_id)], '\n\n'
-
-			distance = measureDistance(training_feature_vector[int(train_doc_id)], test_feature_vector)
-			# print "Test Doc ", test_doc_id, " Training Doc ID ", train_doc_id, " distance ", distance
+			distance = measureDistance(training_feature_vector[train_doc_id], test_feature_vector)
 			doc_distance_map[train_doc_id] = distance
 
 		# sort the map of {doc_id : distance} by distance -> list of (doc_id, distance) tuples
 		sorted_doc_distance = sorted(doc_distance_map.iteritems(), key=operator.itemgetter(1))
-		sorted_doc_distance = sorted_doc_distance[:5]
+		
+		# TODO : parameterize the number of nearest neighbors to be considered, k-nn
+		k = 5
+		sorted_doc_distance = sorted_doc_distance[:k]
+		# print "Sorted Doc Distance ", sorted_doc_distance
+		end = time.time()
+		print "found distance for one test document in ", end-start, " s"
+		# print "Sorted Doc Distance for test document ", test_doc_id, " is ", sorted_doc_distance
 
-		print "Test Doc ", test_doc_id, "Sorted Doc Distance", sorted_doc_distance
 		# according to the parameter "k" extract the top k elements from the above list of tuples
-		classes = []
-		k = 1;
+		class_list = []
+		class_set = set()
+		class_frequency_map = {}
 
-		print "sorted doc distance " , type(sorted_doc_distance)
 		for item in sorted_doc_distance:
-			# append the classes of top k documents to the set of probable classes of the test data
+			# append the class_list of top k documents to the set of probable class_list of the test data
 			# item[0] is the doc_id, item[1] is the distance
-			# TODO : get the classes given a doc_id
 			for class_item in doc_id_class_id_list[item[0]]:
 				# print class_item
-				classes.append(class_item)
-			# classes.append(doc_id_class_id_list[item[0]])
-			# item[0].getClasses
-			# print item
-		print classes, '\n'
-		classes = set(classes) # remove duplicate classes
-		print "Test Document ID ", test_doc_id, " might belong to this class " , str(classes), '\n'
+				class_list.append(class_item)
+			
+		class_set = set(class_list) # remove duplicate class_list
+
+		# find the frequency of classes from the neighbors, assign class with the highest frequency
+		# or assign multiple classes if all of them have the same frequency
+		for class_item in class_set:
+			if not class_item in class_frequency_map:
+				class_frequency_map[class_item] = 0
+			class_frequency_map[class_item] += 1
+
+		sorted_class_frequency = sorted(class_frequency_map.iteritems(), key=operator.itemgetter(1), reverse=True)
+
+		print "test doc id ", test_doc_id, " sorted class frequency ", sorted_class_frequency
 
 # start the program
 main()
-# prepareGlobalStructures()
