@@ -2,6 +2,7 @@ from __future__ import division
 import text_helper
 import file_helper
 import xml_helper
+import config_helper
 import csv
 import ast
 import operator
@@ -24,8 +25,8 @@ doc_id_class_id_list 		= {}	# doc and their corresponsing classes
 test_doc_id_list 	 		= []	# list of document ids selected for testing
 train_doc_id_list 		= []	# list of document ids selected for training
 
-test_directory 			= 'testdata'
-training_directory 		= 'testdata'
+test_directory = ''
+# training_directory 		= 'testdata'
 
 # loads the list of testing and training document ids from relevant files
 def prepareTestAndTrainDocs():
@@ -164,6 +165,8 @@ def preprocessDocument(document):
 	# { set : set(tokens from title and text.. to remove duplicates) }
 	results = {}
 
+	# print document
+
 	if document.title:
 		title = document.title.text
 	else:
@@ -177,9 +180,14 @@ def preprocessDocument(document):
 
 	return results
 
-def main():
+
+class_id_map = {}
+
+def initialize(p_class_id_map):
 	
-	global doc_id_term_map
+	global doc_id_term_map, class_id_map
+
+	class_id_map = p_class_id_map
 
 	# get chi-square terms, assign sequential indices to them
 	prepareChiTermSet()
@@ -196,114 +204,135 @@ def main():
 	startProgram = time.time()
 
 	start = time.time()
-	print "preparing training feature vectors "
+	# print "preparing training feature vectors "
 
 	# prepare feature vectors for training documents beforehand
-	for train_doc_id in train_doc_id_list:
+	for train_doc_id in doc_id_term_id_map:
 		training_feature_vector[train_doc_id] = prepareFeatureVector(doc_id_term_id_map[train_doc_id])
 		# print "Training Feature Vector ", training_feature_vector[train_doc_id]
+		# print type(train_doc_id)
 
 	end = time.time()
 	print "preparing training feature vectors took ", end-start, " s"
-	# for filename in file_list:
-	# 	filepath = file_helper.get_filepath(filename, test_directory)
-
-	# 	xml_helper.initialize(filepath)
-	# 	test_document_list = xml_helper.get_all('reuters')
+	
 	test_doc_index = 1
 	correctly_matched = {}
 
-	for test_doc_id in test_doc_id_list:
-		# print test_doc_id
-		start = time.time()
+	test_directory = config_helper.get_text('test_directory')
+	file_list = file_helper.get_list_of_files(test_directory)
 
-		print "Starting Test Document ", test_doc_index
+	# print file_list
 
-		term_id_frequency_list = []
+	for filename in file_list:
+		filepath = file_helper.get_filepath(filename, test_directory)
 
-		# token_results = preprocessDocument(test_document)
-		
-		# # preprocess.. get the clean tokens.. get the term_id, frequency list
-		# for term in token_results['set']:
+		xml_helper.initialize(filepath)
+		test_document_list = xml_helper.get_all('reuters')
+	
+		# print filepath
+	# for test_doc_id in test_doc_id_list:
 
-		# 	# calculate the term frequency
-		# 	if term in token_results['title']:
-		# 		# TODO : get the title weight from config file
-		# 		term_frequency = 3*token_results['title'].count(term)
-		# 	else:
-		# 		term_frequency = token_results['text'].count(term)
+		for test_document in test_document_list:		
+			# print test_doc_id
+			start = time.time()
 
-		# 	term_frequency = int(term_frequency)
+			test_doc_id = test_document['newid']
 
-		# 	# TODO : get the term_id_index_map from term_master file
-		# 	if not term in term_term_id_map:
-		# 		continue;
+			print "Starting Test Document ", test_doc_index
 
-		# 	term_id = term_term_id_map[term]
-		# 	# if term_id in chi_term_id_set:
-		# 	term_id_frequency_list.append({ term_id : term_frequency} )
+			term_id_frequency_list = []
+
+			token_results = preprocessDocument(test_document)
 			
-		# call prepareFeatureVector to get the feature-vector for the current test document
-		test_feature_vector = prepareFeatureVector(doc_id_term_id_map[test_doc_id])
-		# print "Test Feature Vector ", test_feature_vector
-		doc_distance_map = {}
+			# preprocess.. get the clean tokens.. get the term_id, frequency list
+			for term in token_results['set']:
 
-		# TODO : get the doc_id_term_map from doc_term file
-		for train_doc_id in train_doc_id_list:
-			distance = measureDistance(training_feature_vector[train_doc_id], test_feature_vector)
-			doc_distance_map[train_doc_id] = distance
+				# calculate the term frequency
+				if term in token_results['title']:
+					# TODO : get the title weight from config file
+					term_frequency = 3*token_results['title'].count(term)
+				else:
+					term_frequency = token_results['text'].count(term)
 
-		# sort the map of {doc_id : distance} by distance -> list of (doc_id, distance) tuples
-		sorted_doc_distance = sorted(doc_distance_map.iteritems(), key=operator.itemgetter(1))
-		
-		# TODO : parameterize the number of nearest neighbors to be considered, k-nn
-		k = 2
-		sorted_doc_distance = sorted_doc_distance[:k]
-		# print "Sorted Doc Distance ", sorted_doc_distance
-		
-		# print "found distance for one test document in ", end-start, " s"
-		# print "Sorted Doc Distance for test document ", test_doc_id, " is ", sorted_doc_distance
+				term_frequency = int(term_frequency)
 
-		# according to the parameter "k" extract the top k elements from the above list of tuples
-		class_list = []
-		class_set = set()
-		class_frequency_map = {}
-		
-		for item in sorted_doc_distance:
-			# append the class_list of top k documents to the set of probable class_list of the test data
-			# item[0] is the doc_id, item[1] is the distance
-			for class_item in doc_id_class_id_list[item[0]]:
-				# print class_item
-				class_list.append(class_item)
-				# print "class item ", class_item, " doc_id_class_id_list ", doc_id_class_id_list[test_doc_id]
+				# TODO : get the term_id_index_map from term_master file
+				if not term in term_term_id_map:
+					continue;
+
+				term_id = term_term_id_map[term]
+				# if term_id in chi_term_id_set:
+				term_id_frequency_list.append({ term_id : term_frequency} )
+			
+			# call prepareFeatureVector to get the feature-vector for the current test document
+			test_feature_vector = prepareFeatureVector(term_id_frequency_list)
+			# print "Test Feature Vector ", test_feature_vector
+			doc_distance_map = {}
+
+			# TODO : get the doc_id_term_map from doc_term file
+			# for train_doc_id in train_doc_id_list:
+			for train_doc_id in doc_id_term_id_map.keys():
+				distance = measureDistance(training_feature_vector[train_doc_id], test_feature_vector)
+				doc_distance_map[train_doc_id] = distance
+
+			# sort the map of {doc_id : distance} by distance -> list of (doc_id, distance) tuples
+			sorted_doc_distance = sorted(doc_distance_map.iteritems(), key=operator.itemgetter(1))
+			
+			# TODO : parameterize the number of nearest neighbors to be considered, k-nn
+			k = 2
+			sorted_doc_distance = sorted_doc_distance[:k]
+			# print "Sorted Doc Distance ", sorted_doc_distance
+			
+			# print "found distance for one test document in ", end-start, " s"
+			# print "Sorted Doc Distance for test document ", test_doc_id, " is ", sorted_doc_distance
+
+			# according to the parameter "k" extract the top k elements from the above list of tuples
+			class_list = []
+			class_set = set()
+			class_frequency_map = {}
+			
+			for item in sorted_doc_distance:
+				# append the class_list of top k documents to the set of probable class_list of the test data
+				# item[0] is the doc_id, item[1] is the distance
+				for class_item in doc_id_class_id_list[item[0]]:
+					# print class_item
+					class_list.append(class_item)
+					# print "class item ", class_item, " doc_id_class_id_list ", doc_id_class_id_list[test_doc_id]
+					
 				
-			
-		class_set = set(class_list) # remove duplicate class_list
+			class_set = set(class_list) # remove duplicate class_list
 
-		# find the frequency of classes from the neighbors, assign class with the highest frequency
-		# or assign multiple classes if all of them have the same frequency
-		for class_item in class_set:
-			if not class_item in class_frequency_map:
-				class_frequency_map[class_item] = 0
-			class_frequency_map[class_item] = class_list.count(class_item)
-			if class_item in doc_id_class_id_list[test_doc_id]:
-					correctly_matched[test_doc_id] = 1
+			# find the frequency of classes from the neighbors, assign class with the highest frequency
+			# or assign multiple classes if all of them have the same frequency
+			for class_item in class_set:
+				if not class_item in class_frequency_map:
+					class_frequency_map[class_item] = 0
+				class_frequency_map[class_item] = class_list.count(class_item)
+				# if class_item in doc_id_class_id_list[test_doc_id]:
+				# 		correctly_matched[test_doc_id] = 1
 
-		sorted_class_frequency = sorted(class_frequency_map.iteritems(), key=operator.itemgetter(1), reverse=True)
+			sorted_class_frequency = sorted(class_frequency_map.iteritems(), key=operator.itemgetter(1), reverse=True)
 
-		end = time.time()
-		print "test doc id ", test_doc_id, " sorted class frequency ", sorted_class_frequency
-		print "Actual Class of the document is ", doc_id_class_id_list[test_doc_id], " time taken is ", end-start, " s"
-		# print "processed one document in ", end-start, " s"
-		test_doc_index += 1
+			end = time.time()
+			class_names = []
+			for item in sorted_class_frequency:
+				# print item
+				index = 0
 
-	print "Correctly classified documents ", len(correctly_matched)
+				for item_c in item:
+					if index == 0:
+						class_names.append(class_id_map[item_c])
+						index += 1
+
+			print "Classes for Test Document ", test_doc_id, " might be one of the following ",class_names 
+			# print "Actual Class of the document is ", doc_id_class_id_list[test_doc_id], " time taken is ", end-start, " s"
+			# print "processed one document in ", end-start, " s"
+			test_doc_index += 1
+
+	# print "Correctly classified documents ", len(correctly_matched)
 
 	endProgram = time.time()
 	print "Program's total execution time is ", endProgram - startProgram, " s"
 
-
-	
-
 # start the program
-main()
+# initialize(p_class_id_map)

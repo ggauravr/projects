@@ -6,16 +6,20 @@ import math
 import operator
 import time
 from sets import Set
+import file_helper
+import text_helper
+import config_helper
+import xml_helper
 
-path = '../hw1/output/'
-delim = ','
+path = '../hw1/'
+delim = '#'
 docWithClassCount = 0
 docCount = 0
 topicDocMap = {}
 docTermMap = {}
 termDocMap = {}
 topicTermChiMap = {}
-k = 1000
+k = int(config_helper.get_text('chi_square_cutoff'))
 termTopicCondProb = {}
 finalFeatureSet = set()
 topicPrior = {}
@@ -34,23 +38,25 @@ def ReadFiles():
 
 	for line in open(path + 'doc_term_index_frequency_map.txt'):
 		token = line.split(delim, 3)
-		if(len(token[2]) > 2):
-			docTopicMap[int(token[0])] = [] 
 
-			topicIdList = ast.literal_eval(token[2].replace('$', delim))
-			#Creating topicId documentId map
-			for topic in topicIdList:
-				if (not(int(topic) in topicDocMap)):
-					topicDocMap[int(topic)] = set()
-				topicDocMap[topic].add(int(token[0]))
+		# if(len(token[2]) > 2):
+		docTopicMap[int(token[0])] = [] 
+		topicIdList = ast.literal_eval(token[2])
+		
+		# token[2].replace('$', delim)
+		#Creating topicId documentId map
+		for topic in topicIdList:
+			if (not(int(topic) in topicDocMap)):
+				topicDocMap[int(topic)] = set()
+			topicDocMap[topic].add(int(token[0]))
 
-				docTopicMap[int(token[0])].append(int(topic))
+			docTopicMap[int(token[0])].append(int(topic))
 
-			allDocSet.add(int(token[0]))
+		allDocSet.add(int(token[0]))
 
-			#creating documentId {termId:termCount} map
-			docTermMap[int(token[0])] = ast.literal_eval(token[3])
-			docCount += 1
+		#creating documentId {termId:termCount} map
+		docTermMap[int(token[0])] = ast.literal_eval(token[3])
+		docCount += 1
 
 	# token[0] -> termId, token[1] -> Doc count Containing term, token[2] -> {docId: term count in this Doc, ...}
 	for line in open(path + 'term_doc_index_frequency_map.txt'):
@@ -62,6 +68,7 @@ def ReadFiles():
 	# token[0] -> term name, token[1] -> termId, token[2] -> No of Doc Containing the term
 	for line in open(path + 'term_index_frequency_map.txt'):
 		token = line.split(delim, 3)
+		# print token
 		termMap[int(token[1])] = token[0]
 
 def GetTrainData(perValue, genRandom=False):
@@ -155,9 +162,11 @@ def FeatureSelection():
 
 		finalFeatureSet |= set(featureIdList)
 
-	# featureSetFile = open('final_term_list.csv', 'w')
-	# featureSetFile.write(','.join(str(termId) for termId in finalFeatureSet))
-	# featureSetFile.close()
+	# print len(finalFeatureSet)
+
+	featureSetFile = open('final_term_list.csv', 'w')
+	featureSetFile.write(','.join(str(termId) for termId in finalFeatureSet))
+	featureSetFile.close()
 
 
 def TrainBernoulliNB():
@@ -188,18 +197,89 @@ def TestBernoulliNB(testDocTermList):
 	maxArgTopic = sorted(topicScore.iteritems(), key=operator.itemgetter(1), reverse=True)
 	return maxArgTopic[0][0]
 
-def TestData():
+def preprocessDocument(document):
+	# results map has the following keys
+	# { text : [] }
+	# { title : [] }
+	# { set : set(tokens from title and text.. to remove duplicates) }
+	results = {}
+
+	if document.title:
+		title = document.title.text
+	else:
+		title = ''
+
+	text = document.text
+
+	results['title'] 	= text_helper.clean(title, '', True)
+	results['text'] 	= text_helper.clean(text, '', True)
+	results['set'] 	= set( results['text'] ) | set( results['title'] )
+
+	return results
+
+term_term_id_map = {}
+
+def prepareTermIdMap():
+
+	global term_term_id_map
+
+	with open('term_index_frequency_map.txt') as fh:
+		contents = fh.readlines()
+
+		for line in contents:
+			split_line = line.split(',')
+			term_term_id_map[split_line[0]] = split_line[1]
+
+def startNaiveBayesTest():
 	correctClassify = 0
 	count = 0
-	for docId in testDocSet:
-		count += 1
-		if count%50 == 0: print('processed ' + str(count) + ' docs..') 
-		termIdList = testDocTermMap[docId].keys()
-		topicId = TestBernoulliNB(termIdList)
-		if topicId in docTopicMap[docId]:
-			correctClassify += 1
 
-	print(correctClassify)
+	test_directory = config_helper.get_text('test_directory')
+
+	# get the test document and its term_id list
+	file_list = file_helper.get_list_of_files(test_directory)
+
+	print file_list
+
+	for filename in file_list:
+		filepath = file_helper.get_filepath(filename, test_directory)
+
+		print filepath
+
+		xml_helper.initialize(filepath)
+		test_document_list = xml_helper.get_all('reuters')
+
+		for test_doc in test_document_list:
+
+			# print test_doc
+			test_doc_id = test_doc['newid']
+
+			termIdList = []
+			results = preprocessDocument(test_doc)
+
+			# prepare a list of term_ids from term->term_id map
+			for token in results['set']:
+				termIdList.append(int(term_term_id_map[token]))
+
+			# print "term id list ", termIdList
+			topicId = TestBernoulliNB(termIdList)
+
+			print "Test Document ID ", test_doc_id, " Predicted Class is ", class_id_map[topicId]
+
+			# if topicId in docTopicMap[docId]:
+			# 	correctClassify += 1
+
+		# print(correctClassify)
+
+	# for docId in testDocSet:
+	# 	count += 1
+	# 	if count%50 == 0: print('processed ' + str(count) + ' docs..') 
+	# 	termIdList = testDocTermMap[docId].keys()
+	# 	topicId = TestBernoulliNB(termIdList)
+	# 	if topicId in docTopicMap[docId]:
+	# 		correctClassify += 1
+
+	# print(correctClassify)
 
 
 def GetDistribution():
@@ -212,13 +292,26 @@ def GetDistribution():
 
 startTime = time.time()
 
-ReadFiles()
-GetTrainData(60, genRandom=False)
-FeatureSelection()
-TrainBernoulliNB()
-GetDistribution()
-TestData()
+class_id_map = {}
 
-endTime = time.time()
-print('total time: '),
-print(endTime-startTime)
+def initialize(p_class_id_map):
+
+	global class_id_map 
+
+	class_id_map = p_class_id_map
+	
+	prepareTermIdMap()
+	ReadFiles()
+	# GetTrainData(60, genRandom=False)
+	FeatureSelection()
+	TrainBernoulliNB()
+
+	startNaiveBayesTest()
+	# GetDistribution()
+
+# def startBayes():
+	# startNaiveBayesTest()
+
+# endTime = time.time()
+# print('total time: '),
+# print(endTime-startTime)

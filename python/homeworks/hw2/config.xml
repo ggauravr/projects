@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<config>
+	<!-- the directory which holds the document to be classified -->
+	<!-- leave this field empty if you want to test/validate the classifier on existing documents -->
+	<test_directory>test_data</test_directory>
+
+	<chi_square_cutoff>1000</chi_square_cutoff>
+
+	<!-- classification output is based on the classes of k nearest neighbors -->
+	<k_neighbors>3</k_neighbors>
+
+	<files>
+		<output>
+			<class_master>class_master_map.txt</class_master>
+			<term_master>term_index_frequency_map.txt</term_master>
+			<doc_term_map>doc_term_index_frequency_map.txt</doc_term_map>
+			<term_doc_map>term_doc_index_frequency_map.txt</term_doc_map>
+		</output>
+	</files>	
+
+</config>
