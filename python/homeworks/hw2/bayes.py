@@ -11,7 +11,7 @@ import text_helper
 import config_helper
 import xml_helper
 
-path = '../hw1/'
+path = './'
 delim = '#'
 docWithClassCount = 0
 docCount = 0
@@ -227,7 +227,7 @@ def prepareTermIdMap():
 		contents = fh.readlines()
 
 		for line in contents:
-			split_line = line.split(',')
+			split_line = line.split('#')
 			term_term_id_map[split_line[0]] = split_line[1]
 
 def startNaiveBayesTest():

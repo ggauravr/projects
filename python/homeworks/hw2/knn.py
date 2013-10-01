@@ -73,7 +73,7 @@ def prepareGlobalStructures():
 		contents = fh.readlines()
 
 		for line in contents:
-			split_line = line.split(',')
+			split_line = line.split('#')
 			term_term_id_map[split_line[0]] = split_line[1]
 
 	with open('doc_term_index_frequency_map.txt') as fh:
@@ -194,7 +194,7 @@ def initialize(p_class_id_map):
 	prepareTermIndexMap();
 
 	prepareGlobalStructures()
-	prepareTestAndTrainDocs()
+	# prepareTestAndTrainDocs()
 
 	# take records/ documents from test-data folder
 	# file_list = file_helper.get_list_of_files(test_directory)
