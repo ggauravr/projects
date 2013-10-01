@@ -3,3 +3,4 @@ Steps to run the program
 1. Run the command "make bayes", to start the naive-bayes classifier, which also generates some documents that k-nearest neighbors depends on
 2. Run "make knn", which runs the k-nearest neighbors
 3. Output of the program gives the document id(attribute "newid" in the sgm file) of the test document and the class predicted for it
+4. Test document has to be placed in a directory and the directory path has to given in the config file
