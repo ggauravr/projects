@@ -38,6 +38,7 @@ StateSpace::StateSpace(int nStates, string algorithm): _size(nStates), _originSt
 
 	_states[1] = new State(1, "fwsc|----", hcost_array[1]);
 	_states[1]->setNeighbors(2, 3,5);
+	_states[_originState]->setCost(0);
 
 	_states[2] = new State(2, "-ws-|f--c", hcost_array[2]);
 	_states[2]->setNeighbors(2, 3,5);
@@ -120,7 +121,7 @@ void StateSpace::startSearch(){
 			break;
 		}
 
-		cout << "Current Node Expanding .. and its path cost .." << currentState->getID() << ".. " << currentState->getCost() << endl;
+		cout << "Current Node Expanding .. and its path cost .." << currentState->getID() << ".. " << currentState->getCost()+currentState->getHCost() << endl;
 
 		neighbors = currentState->getNeighbors();
 
@@ -129,12 +130,15 @@ void StateSpace::startSearch(){
 			// cout << "State ,.. Neighbors length " << currentState->getID() << ".. " << length << endl;
 			if( !_states[neighbors[i]]->isVisited() ){
 
-				_states[neighbors[i]]->setCost( currentState->getCost() + _states[neighbors[i]]->getCost() + _states[neighbors[i]]->getHCost() );
+				_states[neighbors[i]]->setCost( currentState->getCost() + _states[neighbors[i]]->getCost() );
 				_queue.insert(_states[neighbors[i]]);
 				_states[neighbors[i]]->setStatus(true);
 				_states[neighbors[i]]->setParent(currentState->getID());
 			}
 		}
+
+		_queue.heapify();
+		// _queue.printQueue();
 	}
 
 	if(isGoal){

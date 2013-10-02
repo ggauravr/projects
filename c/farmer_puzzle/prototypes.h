@@ -53,6 +53,7 @@ class PQueue{
 		State * remove();
 		bool isEmpty();
 		void printQueue();
+		void heapify();
 
 		int getCurrentIndex();
 		int getSize();
