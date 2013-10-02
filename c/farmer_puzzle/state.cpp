@@ -1,16 +1,21 @@
 #include <iostream>
+#include <string>
 #include <cstdarg>
 #include "prototypes.h"
 
 using namespace std;
 State::State(): _id(0), _parent(0), _cost(0), _visited(false) {}
-State::State(int id): _id(id), _parent(0), _cost(0), _visited(false) {}
+State::State(int id, string representation): _id(id), _figure(representation), _parent(0), _cost(0), _visited(false) {}
 
 State::State(State & state){
 	_id 			= state.getID();
 	_parent 	= state.getParent();
 	_cost 		= state.getCost();
 	_neighbors	= state.getNeighbors();
+}
+
+string State::getRepresentation(){
+	return _figure;
 }
 
 int State::getID(){

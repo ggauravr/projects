@@ -1,5 +1,8 @@
 #include <iostream>
+#include <string>
 #include <cstdarg>
+
+using namespace std;
 
 class State{
 
@@ -8,6 +11,8 @@ class State{
 		_cost,
 		_nNeighbors;
 
+	string _figure;
+
 	bool _visited;
 
 	int * _neighbors;
@@ -15,7 +20,7 @@ class State{
 	public:
 
 		State();
-		State(int id);
+		State(int id, string representation);
 		State(State&);
 
 		int getID();
@@ -24,6 +29,7 @@ class State{
 		int getNeighborsLength();
 		bool isVisited();
 		int * getNeighbors();
+		string getRepresentation();
 
 		// void setID(int);
 		void setParent(int);
@@ -61,6 +67,7 @@ class StateSpace{
 		StateSpace(int);
 		void startSearch();
 		void printStateSpace();
+		void printPath(int);
 		// int getOriginState();
 		// int getGoalState();
 		// int getSize();
