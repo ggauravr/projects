@@ -1,0 +1,18 @@
+#########################
+	
+Instructions to run the program
+
+
+#########################
+
+1. compile all the .cpp file with :
+	g++ main.cpp pqueue.cpp state.cpp statespace.cpp
+
+2. execute the executable(a.out) with appropriate algorithm as the parameter
+	./a.out bfs
+
+		OR
+
+	./a.out astar
+
+	PS : changing the parameter or not providing it doesn't run the program
