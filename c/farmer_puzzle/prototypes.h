@@ -5,7 +5,8 @@ class State{
 
 	int 	_id,
 		_parent,
-		_cost;
+		_cost,
+		_nNeighbors;
 
 	bool _visited;
 
@@ -14,47 +15,52 @@ class State{
 	public:
 
 		State();
-		State(int id, int parent, int cost);
+		State(int id);
+		State(State&);
 
 		int getID();
 		int getParent();
 		int getCost();
+		int getNeighborsLength();
 		bool isVisited();
-		// int * getNeighbors();
+		int * getNeighbors();
 
 		// void setID(int);
-		// void setParent(int);
+		void setParent(int);
 		// void setCost(int);
-		// void setStatus(bool);
+		void setStatus(bool);
 		void setNeighbors(int n, ...);
 };
 
-// class PQueue{
+class PQueue{
 
-// 	States * _queue;
-// 	int 	_currentIndex,
-// 		_size;
+	State **_states;
+	int 	_currentIndex,
+		_size;
 
-// 	public:
-// 		PQueue(int);
-// 		void insert(State *);
-// 		State remove();
+	public:
+		PQueue(int);
+		void insert(State *);
+		State * remove();
+		bool isEmpty();
+		void printQueue();
 
-// 		int getCurrentIndex();
-// 		int getSize();
-// };
+		int getCurrentIndex();
+		int getSize();
+};
 
 class StateSpace{
 
 	State ** _states;
-	// PQueue _queue;
+	PQueue _queue;
 	int 	_size,
 		_originState,
 		_goalState;
 
 	public:
 		StateSpace(int);
-
+		void startSearch();
+		void printStateSpace();
 		// int getOriginState();
 		// int getGoalState();
 		// int getSize();

@@ -3,9 +3,9 @@
 
 int main(){
 
-	StateSpace stateSpace(1); // 16 states
+	StateSpace stateSpace(16); // 16 states
 
-	// stateSpace.startSearch();
+	stateSpace.startSearch();
 
 	return 0;
 

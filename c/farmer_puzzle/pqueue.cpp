@@ -1,51 +1,54 @@
 #include <iostream>
+#include <cstdarg>
 #include "prototypes.h"
 
-PQueue::PQueue(int nStates): currentIndex(1), size(0) {
-	states = new State[nStates+1];
+using namespace std;
+
+PQueue::PQueue(int n): _size(0), _currentIndex(0){
+	_states = new State * [n];
 }
 
-bool PQueue::isEmpty(){
-	return size == 0;
-}
+void PQueue::insert(State * newState){
 
-void PQueue::insert(State state){
+	int parentPos;
+	State * tempState;
 
-	int bestPosition, leftChildPos;
-	State tempState;
+	_states[_size++] = newState;
 
-	// insert a node in the end.. heapify.. increment the size
-	states[currentIndex] = state;
+	// cout << "new state " << _states[0]->getID();
 
-	for(int i = (size-currentIndex)/2; i <= currentIndex; i = i/2){
+	// printQueue();
 
-		leftChildPos = 2*i; // right child will be at 2*i +1
-		bestPosition = leftChildPos;
-
-		if( leftChildPos+1 <= size ){
-			if(states[leftChildPos].getCost() < states[leftChildPos+1].getCost()){
-				bestPosition = leftChildPos;
-			}
-			else{
-				bestPosition = leftChildPos + 1;
-			}
-		}
-
-		// parent positon after this will have the least cost states
-		if(states[bestPosition].getCost() < states[i].getCost()){
+	// insert the state.. heapify.. increment size
+	for(int i = _size-1; i > _currentIndex; i = i/2){
+		// cout << " int loop " << endl;
+		parentPos = i/2;
+		// compare with its parent, if not in order, push up
+		if(_states[i]->getCost() < _states[parentPos]->getCost()){
 			// swap child and parent
-			tempState = states[bestPosition];
-			states[bestPosition] = states[i];
-			states[i] = tempState;
+			tempState = _states[i];
+			_states[i]   = _states[parentPos];
+			_states[parentPos] = tempState;
 		}
 
 	}
 
-	++size;
 }
 
-State PQueue::remove(){
+void PQueue::printQueue(){
+	cout << "Queue contents " << endl;
 
-	// return state with the lowest path cost.. increment currentIndex
-	return states[currentIndex++];
+	for(int i= _currentIndex; i < _size; ++i){
+		cout << "States in Queue are " << _states[i]->getID() << endl;
+	}
 }
+
+bool PQueue::isEmpty(){
+	return _size == 0;
+}
+
+State * PQueue::remove(){
+
+	return _states[_currentIndex++];
+}
+
