@@ -2,56 +2,34 @@
 #include <cstdarg>
 #include "prototypes.h"
 
-State::State(): id(0), cost(0), parentState(0), visited(false), neighbors(NULL) {}
+using namespace std;
 
-State::State(int id, int cost): id(id), visited(false), parentState(0), cost(cost) {}
+State::State(int id, int parent, int cost): _id(id), _parent(parent), _cost(cost), _visited(false) {}
 
 int State::getID(){
-	return id;
-}
-
-bool State::isVisited(){
-
-	return visited;
-}
-
-int State::getCost(){
-	return cost;
+	return _id;
 }
 
 int State::getParent(){
-	return parentState;
+	return _parent;
 }
 
-int * State::getNeighbors(){
-
-	return neighbors;
+int State::getCost(){
+	return _cost;
 }
 
-void State::setStatus(bool status){
-	visited = status;
+bool State::isVisited(){
+	return _visited;
 }
 
-void State::setCost(int cost){
-	this->cost = cost;
-}
+void State::setNeighbors(int n, ...){
 
-void State::setParent(int parent){
-	parentState = parent;
-}
+	_neighbors = new int[n];
 
-void setNeighbors(int n, ...){
-	
 	va_list arguments;
-
 	va_start(arguments, n);
 
-	neighbors = new int[n];
-
-	for(int i=0; i < n; i++){
-		neighbors[i] = va_arg(arguments, int);
+	for(int i=0; i < n; ++i){
+		_neighbors[i] = va_arg(arguments, int);
 	}
-
-	cout << "Neighbors for State " << id << " are " << neighbors << endl;
-
 }

@@ -3,59 +3,59 @@
 
 class State{
 
-	private	:
-		bool visited;
-		int	cost;
-		int	parentState;
-		int id;
+	int 	_id,
+		_parent,
+		_cost;
 
-		int * neighbors;
+	bool _visited;
 
-	public	:
+	int * _neighbors;
+
+	public:
 
 		State();
-		State(int, int);
+		State(int id, int parent, int cost);
 
-		// getters
-		bool isVisited();
-		int getCost();
-		int getParent();
-		int * getNeighbors();
 		int getID();
+		int getParent();
+		int getCost();
+		bool isVisited();
+		// int * getNeighbors();
 
-		// setters
-		void setStatus(bool);
-		void setCost(int);
-		void setParent(int);
-		void setNeighbors(int x, ...);
-
+		// void setID(int);
+		// void setParent(int);
+		// void setCost(int);
+		// void setStatus(bool);
+		void setNeighbors(int n, ...);
 };
 
-class PQueue{
+// class PQueue{
 
-	private :
-		// holds the states in queue, waiting to be expanded, in order of their priority
-		State * states;
-		int currentIndex;
-		int size;
+// 	States * _queue;
+// 	int 	_currentIndex,
+// 		_size;
 
-	public :
-		PQueue(int);
-		State remove();
-		void insert(State);
-		bool isEmpty();
-};
+// 	public:
+// 		PQueue(int);
+// 		void insert(State *);
+// 		State remove();
+
+// 		int getCurrentIndex();
+// 		int getSize();
+// };
 
 class StateSpace{
 
-	int originState,
-		goalState,
-		nStates;
-	State * states;
-	PQueue queue;
+	State ** _states;
+	// PQueue _queue;
+	int 	_size,
+		_originState,
+		_goalState;
 
-	public	:
-		StateSpace();
+	public:
 		StateSpace(int);
-		void startSearch();
+
+		// int getOriginState();
+		// int getGoalState();
+		// int getSize();
 };
