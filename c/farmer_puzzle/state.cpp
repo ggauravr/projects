@@ -4,9 +4,13 @@
 #include "prototypes.h"
 
 using namespace std;
+
+// default constructor
 State::State(): _id(0), _parent(0), _cost(1), _visited(false) {}
+
 State::State(int id, string representation, int hcost): _id(id), _h_cost(hcost), _figure(representation), _parent(0), _cost(1), _visited(false) {}
 
+// copy constructor
 State::State(State & state){
 	_id 			= state.getID();
 	_parent 	= state.getParent();
@@ -51,6 +55,7 @@ void State::setCost(int cost){
 	_cost = cost;
 }
 
+// takes variable number of arguments, and adds them as the neighbors of the state
 void State::setNeighbors(int n, ...){
 
 	_neighbors = new int[n];

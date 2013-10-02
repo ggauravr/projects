@@ -9,12 +9,13 @@ StateSpace::StateSpace(int nStates, string algorithm): _size(nStates), _originSt
 
 	int * hcost_array = new int[nStates+1];
 
+	// for BFS, heuristic for all states is same and 0
 	if(algorithm == "bfs"){
-		// assign h_cost all to zero
 		for(int i =1; i <= nStates ; ++i){
 			hcost_array[i] = 0;
 		}
 	}
+	//  heuristic map for states -> number of moves required to get to the goal node, after relaxing the restrictions
 	else if(algorithm == "astar"){
 		hcost_array[1] = 5;
 		hcost_array[2] = 4;
@@ -108,9 +109,8 @@ void StateSpace::startSearch(){
 	bool isGoal = false;
 	int * neighbors;
 
+	// start with expansion of the origin state
 	_queue.insert(_states[_originState]);
-	
-	// printStateSpace();
 
 	while(!_queue.isEmpty()){
 		currentState = _queue.remove();
@@ -126,19 +126,19 @@ void StateSpace::startSearch(){
 		neighbors = currentState->getNeighbors();
 
 		for(int i=0, length = currentState->getNeighborsLength(); i < length ; ++i){
-			// if the neighbor is not already in the queue, add it
-			// cout << "State ,.. Neighbors length " << currentState->getID() << ".. " << length << endl;
+			
+			// for all neighbors of the current state, if they are not already visited, add them into the queu
 			if( !_states[neighbors[i]]->isVisited() ){
 
+				// update path cost = state cost + path cost of parent
 				_states[neighbors[i]]->setCost( currentState->getCost() + _states[neighbors[i]]->getCost() );
 				_queue.insert(_states[neighbors[i]]);
 				_states[neighbors[i]]->setStatus(true);
 				_states[neighbors[i]]->setParent(currentState->getID());
 			}
 		}
-
+		
 		_queue.heapify();
-		// _queue.printQueue();
 	}
 
 	if(isGoal){
