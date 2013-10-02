@@ -1,9 +1,14 @@
 #include <iostream>
+#include <string>
 #include "prototypes.h"
 
-int main(){
+using namespace std;
 
-	StateSpace stateSpace(16); // 16 states
+int main(int argc, char ** argv){
+
+	string algorithm = argv[1];
+
+	StateSpace stateSpace(16, algorithm); // 16 states
 
 	stateSpace.startSearch();
 

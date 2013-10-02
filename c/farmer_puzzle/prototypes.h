@@ -9,7 +9,9 @@ class State{
 	int 	_id,
 		_parent,
 		_cost,
-		_nNeighbors;
+		_nNeighbors,
+		// heuristic cost
+		_h_cost;
 
 	string _figure;
 
@@ -20,7 +22,7 @@ class State{
 	public:
 
 		State();
-		State(int id, string representation);
+		State(int id, string representation, int h_cost);
 		State(State&);
 
 		int getID();
@@ -30,10 +32,11 @@ class State{
 		bool isVisited();
 		int * getNeighbors();
 		string getRepresentation();
+		int getHCost();
 
 		// void setID(int);
 		void setParent(int);
-		// void setCost(int);
+		void setCost(int);
 		void setStatus(bool);
 		void setNeighbors(int n, ...);
 };
@@ -64,7 +67,7 @@ class StateSpace{
 		_goalState;
 
 	public:
-		StateSpace(int);
+		StateSpace(int, string);
 		void startSearch();
 		void printStateSpace();
 		void printPath(int);

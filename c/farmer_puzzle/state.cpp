@@ -4,14 +4,15 @@
 #include "prototypes.h"
 
 using namespace std;
-State::State(): _id(0), _parent(0), _cost(0), _visited(false) {}
-State::State(int id, string representation): _id(id), _figure(representation), _parent(0), _cost(0), _visited(false) {}
+State::State(): _id(0), _parent(0), _cost(1), _visited(false) {}
+State::State(int id, string representation, int hcost): _id(id), _h_cost(hcost), _figure(representation), _parent(0), _cost(1), _visited(false) {}
 
 State::State(State & state){
 	_id 			= state.getID();
 	_parent 	= state.getParent();
 	_cost 		= state.getCost();
 	_neighbors	= state.getNeighbors();
+	_h_cost	= state.getHCost();
 }
 
 string State::getRepresentation(){
@@ -24,6 +25,10 @@ int State::getID(){
 
 int State::getParent(){
 	return _parent;
+}
+
+int State::getHCost(){
+	return _h_cost;
 }
 
 int State::getCost(){
@@ -40,6 +45,10 @@ int * State::getNeighbors(){
 
 bool State::isVisited(){
 	return _visited;
+}
+
+void State::setCost(int cost){
+	_cost = cost;
 }
 
 void State::setNeighbors(int n, ...){
