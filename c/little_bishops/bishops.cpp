@@ -13,14 +13,14 @@ struct Point{
 int nSolutions = 0;
 
 bool isASolution(int size, int k){
-	nSolutions ++;
 
+	// cout << "size " << size << " k " << k << endl;
 	return size == k;
 }
 
 void processSolution(Point solution_vector[], int k){
 	int i;
-
+	nSolutions++;
 	// for(i=0; i < k; i++){
 	// 	cout << solution_vector[i].x << ", " << solution_vector[i].y << endl;
 	// }
@@ -41,7 +41,7 @@ void constructCandidates(Point solution_vector[], int size, int n, int k, Point 
 	for(i=0;i<n;i++){
 		for(j=0; j<n;j++){
 			for(p=0; p < size; p++ ){
-
+				
 				if(abs(i-solution_vector[p].x) == abs(j-solution_vector[p].y) ){
 					is_valid[i][j] = false;
 				}
@@ -62,6 +62,8 @@ void constructCandidates(Point solution_vector[], int size, int n, int k, Point 
 		}
 	}
 
+	// cout << "nCandidates " << *nCandidates << endl;
+
 }
 
 void checkPositions(Point solution_vector[], int size, int n, int k){
@@ -74,10 +76,17 @@ void checkPositions(Point solution_vector[], int size, int n, int k){
 	}
 	else{
 		size += 1;
-
+		cout << " size " << size << endl;
 		constructCandidates(solution_vector, size, n, k, candidates, &nCandidates);
+		// cout << "solution vector " << endl;
+		// for(i=0; i < sizeof(solution_vector)/sizeof(Point); i++){
+		// 	cout << solution_vector[i].x << ", "  << solution_vector[i].y << "candidates " << nCandidates << endl;
+		// }
+
 		for(i=0; i < nCandidates; i++){
-			solution_vector[size] = candidates[i];
+			solution_vector[size-1] = candidates[i];
+
+			cout << "candidates " << candidates[i].x << ", " << candidates[i].y << " and size " << size << endl;
 
 			checkPositions(solution_vector, size, n, k);
 		}
