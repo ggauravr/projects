@@ -9,6 +9,9 @@
 		prints all possible paths as a set list of (x, y) coordinates
 		prints the number of solutions / paths obtained
 
+	Solution Vector
+		array / vector of coordinates of the squares the rook visited
+
 */
 
 #include <iostream>
@@ -103,11 +106,8 @@ int main(){
 	// starting position
 	t_point origin = {1,1};
 
-	vector<t_point>::iterator iter;
-
+	// push the starting point to the solution vector
 	solution.push_back(origin);
-
-	iter = solution.begin();
 
 	computePath(solution, 0, BOARDSIZE);
 	
