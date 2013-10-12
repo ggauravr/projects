@@ -40,8 +40,8 @@ void constructCandidates(Point solution_vector[], int size, int n, int k, Point 
 
 	for(i=0;i<n;i++){
 		for(j=0; j<n;j++){
-			for(p=0; p < size; p++ ){
-				
+			for(p=1; p < size; p++ ){
+
 				if(abs(i-solution_vector[p].x) == abs(j-solution_vector[p].y) ){
 					is_valid[i][j] = false;
 				}
@@ -62,7 +62,7 @@ void constructCandidates(Point solution_vector[], int size, int n, int k, Point 
 		}
 	}
 
-	// cout << "nCandidates " << *nCandidates << endl;
+	cout << "nCandidates " << *nCandidates << " and size " << size << endl;
 
 }
 
@@ -76,7 +76,7 @@ void checkPositions(Point solution_vector[], int size, int n, int k){
 	}
 	else{
 		size += 1;
-		cout << " size " << size << endl;
+		// cout << " size " << size << endl;
 		constructCandidates(solution_vector, size, n, k, candidates, &nCandidates);
 		// cout << "solution vector " << endl;
 		// for(i=0; i < sizeof(solution_vector)/sizeof(Point); i++){

@@ -1,0 +1,5 @@
+Program running instructions
+
+1. Run the command "make bayes_classifier" , to start the naive-bayes classifier, Run this before K nearest neighbors
+2. Run "make kneighbors", which runs the k-neighbors classifier
+3. Output of the program gives the document id of the test document and the class name predicted

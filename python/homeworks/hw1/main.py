@@ -124,7 +124,7 @@ print 'Creating Output Files\n'
 # write the term, doc frequency map to file
 term_id_frequency_file = open(file_term_master, 'w')
 for term in sorted(term_index_frequency_map.keys()):
-    term_id_frequency_file.write(term.encode('utf-8')+','+str(term_index_frequency_map[term][0])+','+str(term_index_frequency_map[term][1])+'\n')
+    term_id_frequency_file.write(term.encode('utf-8')+'#'+str(term_index_frequency_map[term][0])+'#'+str(term_index_frequency_map[term][1])+'\n')
 
 # write the doc term frequency map to file
 # write the class term_id map to file
@@ -134,16 +134,16 @@ for class_name in sorted(class_index_map.keys()):
 
 fileh_doc_term_map = open(file_doc_term_map, 'w')
 for doc_id, value in doc_term_frequency_class_map.items():
-    temp_classes = '$'.join(map(str, value['classes']))
+    # temp_classes = '$'.join(map(str, value['classes']))
     #print value['classes']
-    fileh_doc_term_map.write(str(doc_id)+','+str(value['term_count'])+',['+temp_classes+'],'+str(value['terms']) +'\n')
+    fileh_doc_term_map.write(str(doc_id)+'#'+str(value['term_count'])+'#'+str(value['classes'])+'#'+str(value['terms']) +'\n')
     # print doc_id, value,
 
 yValues = [0]
 fileh_term_doc_map = open(file_term_doc_map, 'w')
 for term_id in sorted(inverted_tree_map.keys()):
     item = inverted_tree_map[term_id]
-    fileh_term_doc_map.write(str(term_id)+','+str(item['total_count'])+','+str(item['docs'])+'\n')
+    fileh_term_doc_map.write(str(term_id)+'#'+str(item['total_count'])+'#'+str(item['docs'])+'\n')
     yValues.append(item['total_count']/doc_count)
 
 if consider_threshold :
