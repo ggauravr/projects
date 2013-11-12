@@ -1,7 +1,8 @@
 /*
   File : gayle_runner.cpp
 
-  the problem statement was found in Cracking the coding Interview, by Gayle Laakman, in the Linked List chapter, hence the name
+  the problem statement was found in "Cracking the Coding Interview, by Gayle Laakman", 
+  in the Linked List chapter, hence the name
 
   the program builds a linked list of generic type and of length 2*n, where n is integer and greater than 1,
   and modifies the list such that, i-th element should be pointing to n+i -th node
