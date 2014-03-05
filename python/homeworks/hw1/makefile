@@ -1,5 +1,8 @@
 build-dependency:
-	sudo apt-get install python-bs4 python-nltk python-matplotlib
+	sudo apt-get install python-numpy python-scipy python-matplotlib
 
-run:
-	python main.py
+kmeans:
+	python kmeans.py
+
+dbscan:
+	python DBScan.py

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<config>
+	<data_directory>original</data_directory>
+	<title_weight>5</title_weight>
+	<stopwords>[a,is,was,the,to,from,on,at,by,be,were,are]</stopwords>
+	<files>
+		<output>
+			<class_master>class_master_map.txt</class_master>
+			<term_master>term_index_frequency_map.txt</term_master>
+			<doc_term_map>doc_term_index_frequency_map.txt</doc_term_map>
+			<term_doc_map>term_doc_index_frequency_map.txt</term_doc_map>
+		</output>
+	</files>	
+
+	<threshold>
+		<!-- leave this empty for False.. dont write False explicitly, True otherwise -->
+		<consider></consider>
+		<upper_bound>0.8</upper_bound>
+		<lower_bound>0.08</lower_bound>
+	</threshold>
+</config>

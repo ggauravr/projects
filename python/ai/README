@@ -1,0 +1,24 @@
+Steps to run the Test file and to find Accuracy
+--------------------------------------------------
+
+# python <test_program> <model_file> <test_feature_file> <predicted_label_file>
+$ python mod_test.py modelFile.dat testFeature.dat predictedLabels.dat
+
+# python <accuracy_program> <predicted_label_file> <true_label_file>
+$ python mod_accuracy.py predictedLabels.dat trueLabel.dat
+
+-----------------------------------------
+Lambda  Accuracy
+
+10**-4      0.9952
+10**-5      0.9954
+10**-6      0.9954
+10**-7      0.9954
+10**-8      0.9954
+10**-9      0.9954
+10**-10    0.9956
+------------------------------------------
+
+10**-10 gave the best accuracy
+
+

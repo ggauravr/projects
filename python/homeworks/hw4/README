@@ -1,0 +1,9 @@
+
+1. Run make apriori to generate apriori algorithm to generate input to SPMF
+
+2. To run SPMF : 
+  java -Xmx1024m -jar spmf.jar &
+
+3. Run make kmeans to build the Clusters
+
+4. Run make classify to build classfication based on Association

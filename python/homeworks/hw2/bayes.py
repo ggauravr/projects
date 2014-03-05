@@ -11,7 +11,7 @@ import text_helper
 import config_helper
 import xml_helper
 
-path = './'
+path = '../hw1/'
 delim = '#'
 docWithClassCount = 0
 docCount = 0
@@ -68,7 +68,7 @@ def ReadFiles():
 	# token[0] -> term name, token[1] -> termId, token[2] -> No of Doc Containing the term
 	for line in open(path + 'term_index_frequency_map.txt'):
 		token = line.split(delim, 3)
-		# print token
+		print token
 		termMap[int(token[1])] = token[0]
 
 def GetTrainData(perValue, genRandom=False):
@@ -121,9 +121,6 @@ def GetTrainData(perValue, genRandom=False):
 	docTermMap.clear()
 	docTermMap = tempDocTermMap
 			
-
-
-
 def FeatureSelection():
 	print('Selecting features...')
 	#Chi square feature selection method
@@ -223,7 +220,7 @@ def prepareTermIdMap():
 
 	global term_term_id_map
 
-	with open('term_index_frequency_map.txt') as fh:
+	with open(path + 'term_index_frequency_map.txt') as fh:
 		contents = fh.readlines()
 
 		for line in contents:
@@ -259,7 +256,8 @@ def startNaiveBayesTest():
 
 			# prepare a list of term_ids from term->term_id map
 			for token in results['set']:
-				termIdList.append(int(term_term_id_map[token]))
+				if(token in term_term_id_map):
+					termIdList.append(int(term_term_id_map[token]))
 
 			# print "term id list ", termIdList
 			topicId = TestBernoulliNB(termIdList)

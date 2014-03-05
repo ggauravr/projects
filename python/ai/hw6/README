@@ -1,0 +1,33 @@
+Steps to run the Test file and to find Accuracy
+--------------------------------------------------
+
+# config.yaml defines the path to input, output and module directories
+
+# to train
+# relevant files taken from the config file
+
+$ python train.py
+
+# to test/predict
+# relevant files taken from the config file
+
+$ python modules/mod_test.py
+
+# to measure the accuracy
+# <true_label_filename> should be put in the input directory, as configured in config.yaml
+
+$ python modules/mod_accuracy.py <true_label_filename>
+
+-----------------------------------------
+Lambda  Accuracy
+
+10**-4      0.9952
+10**-5      0.9954
+10**-6      0.9954
+10**-7      0.9954
+10**-8      0.9954
+10**-9      0.9954
+10**-10    0.9956
+------------------------------------------
+
+10**-10 gave the best accuracy

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <config>
-	<data_directory>original</data_directory>
+	<data_directory>../data</data_directory>
 	<title_weight>5</title_weight>
 	<stopwords>[a,is,was,the,to,from,on,at,by,be,were,are]</stopwords>
 	<files>

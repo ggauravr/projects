@@ -1,0 +1,33 @@
+Hi Prof. Hamm,
+
+Please check the attached two images, which indicates the following:
+
+x-axis : number of samples trained
+y-axis : log error
+with delays(tau) = 0, 100, 6000
+
+green is the graph with delay = 0
+red with delay = 100 and 6000
+
+1. delayed_gradient.png - is the graph of :
+    my calculation here is as follows:
+    
+    at time t, I'm using parameter at time t - p(t) and feature t - f(t)
+    but gradient at time t-tau - g(t-tau)
+    so the model used to test accuracy is :
+    p(t) = p(t) - g(t-tau)
+
+    here the graph seems to overlap irrespective of such varied delay
+
+2. delayed_modelparam.png - is the graph of:
+    at time t, I'm using parameter at time t-tau - p(t-tau)
+    so the model used to test accuracy is :
+    p(t-tau) with feature f(t)
+
+    here the graph seems to be more like what it needs to be
+
+As I understand, the paper "Slow Learners.. " suggests to use latest parameter but just the old gradient, so I was wondering if I'm going wrong in my calculation(1) somewhere.
+
+-- 
+Regards,
+Gaurav Ramesh

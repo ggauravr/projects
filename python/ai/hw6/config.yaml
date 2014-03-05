@@ -1,0 +1,17 @@
+dir : {
+  input : input,
+  output : output,
+  modules : modules
+}
+file : {
+  output : {
+    model : modelFile.dat,
+    predict : predictedLabels.dat
+  },
+  input : {
+    test_sample : testFeatureSample.dat,
+    training_sample : trainingFeature.dat,
+    training_label : trainingLabel.dat
+  }
+
+}

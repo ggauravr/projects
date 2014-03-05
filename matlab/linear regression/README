@@ -1,0 +1,5 @@
+learned regression coefficients:
+0.0037   -0.0061    0.0003    0.0003[bias term]
+
+instruction to execute in matlab terminal:
+> main_function

@@ -1,0 +1,15 @@
+Output Files:
+
+1. doc_term_index_frequency_map
+	structure:
+		doc-id, total-term-count, [class-ids], [ { term-id : frequency } ]
+
+		doc-id : unique id assigned to a document, during preprocessing
+		total-term-count : sum of frequencies of all tokens
+		class-id : unique id assigned to each class
+		term-id : unique id assigned to each term
+		frequency : frequency of the term in the document
+
+2. term_doc_index_frequency_map
+	structures:
+	
