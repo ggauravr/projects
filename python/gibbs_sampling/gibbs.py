@@ -22,7 +22,7 @@ state_probabilities = [0] * N
 cur_state = 0
 
 # number of iterations
-T = 10000
+T = 1
 
 # joint probability table
 jpt = []
@@ -137,11 +137,12 @@ def main():
   Z = sum(jpt)
   # print "Z: ", Z
 
-  T_list = [10000, 11000, 12000, 13000, 14000, 15000, 20000]
+  T_list = [1, 10, 100, 1000, 10000, 11000, 12000, 13000, 14000, 15000, 20000]
   error_list = []
 
   for T in T_list:
-    cur_state = randint(0, N-1)
+    cur_state = 0 # randint(0, N-1)
+    state_probabilities = [0] * N
     for t in range(1, T+1):
 
       # looping over all random variables, 0 to n-1
@@ -161,14 +162,25 @@ def main():
 
         probability = numerator / denominator
 
+        # print "cur_state: ", cur_state
         setState(z, np.random.choice(2, p=[probability, 1-probability]))
+        # print "cur_state, after: ", cur_state
 
       # increase of counter of the new state/ sampled
       state_probabilities[cur_state] += 1
 
     sum_entries = sum(state_probabilities)
-    state_probabilities = [ x/T for x in state_probabilities ]
+    print "num_entries: ", sum_entries
+    state_probabilities = [ x/sum_entries for x in state_probabilities ]
+    # for i in range(len(state_probabilities)):
+    #   state_probabilities[i] = state_probabilities[i]/T
     # print state_probabilities
+
+    print "T, Z: ", T, Z
+
+    if(T == 10000):
+      print "state_probabilities: ", state_probabilities
+      print "true probabilities: ", [x/Z for x in jpt]
 
     error = 0
     for i in range(N):
@@ -177,7 +189,7 @@ def main():
     error_list.append(error)
     print "T, error: ", T, error
   plt.plot(T_list, error_list)
-  plt.show()
+  # plt.show()
 
 
 if __name__  == '__main__':

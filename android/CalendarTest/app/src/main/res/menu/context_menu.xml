@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:id="@+id/action_save"
+        android:title="@string/action_save"
+        android:orderInCategory="100"
+        android:showAsAction="always" />
+
+    <item android:id="@+id/action_ignore"
+        android:title="@string/action_ignore"
+        android:orderInCategory="100"
+        android:showAsAction="always" />
+
+</menu>
