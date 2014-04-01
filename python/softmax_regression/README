@@ -1,0 +1,4 @@
+Running the code:
+
+- Download the gunzip data files and the code files
+- Put them in the same folder, extract the gunzips and run the program by typing in 'python main.py' in the command line

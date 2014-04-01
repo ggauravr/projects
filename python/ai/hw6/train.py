@@ -22,7 +22,7 @@ def buildModel(trainLabels, lmbda, D, tau):
 	t = 0
 	nSamples = gblTrainFeatures.shape[0]
 	w = np.array([0]*(D+1))
-	# gradients = []
+	gradients = [0]
 
 	for i in range(nSamples):
 		t += 1
@@ -40,10 +40,11 @@ def buildModel(trainLabels, lmbda, D, tau):
 		nCorrect, accuracy = mod_test.TestSample(t, nCorrect, w, gblTrainFeatures[i], trainLabels[i])
 		accuracies.append(accuracy)
 
-		if t > tau+1: # tau+1 = n -> number of clients
-			w = w - (lmbda/math.sqrt(t-tau)) * gradients[t-tau]
+		if t >= tau+1: # tau+1 = n -> number of clients
+			# w = w - (lmbda/math.sqrt(t-tau)) * gradients[t-tau]
+			w = w - (lmbda/(t-tau)) * gradients[t-tau]
 			# print "t = ", t, ".. using gradient computed at time = ", t-tau, " so delay is ", tau
-		else: # t <= tau+1
+		else: # t < tau+1
 			w = w# - (lmbda/t) * gradients[1]
 
 	return w.tolist(), accuracies
@@ -51,7 +52,6 @@ def buildModel(trainLabels, lmbda, D, tau):
 def TrainLogReg(trFeatureFile, trLabelFile, mdlFile, D, lmbda, Niter):
 	global gblTrainFeatures
 	taus = [0, 1, 10, 100, 1000]
-
 	trainFeatures = mod_helpers.getFeatureVector(trFeatureFile)
 	trainLabels = mod_helpers.getLabelVector(trLabelFile)
 	nSamples = trainFeatures.shape[0]
