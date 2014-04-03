@@ -15,7 +15,7 @@ function [ model ] = build_linear_regression( X, Y )
     
     % mldivide
     % last element of the model will be the bias
-    model = Y\X;
+    model = X\Y;
 
 end
 

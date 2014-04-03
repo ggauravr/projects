@@ -20,6 +20,7 @@ android {
 
 dependencies {
     compile 'com.android.support:appcompat-v7:+'
-    compile 'com.mcxiaoke.volley:library:1.0.1@jar'
-    compile files('libs/jscience.jar')
+    compile 'com.google.code.gson:gson:2.2.+'
+    compile 'com.google.android.gms:play-services:4.2.42'
+    compile fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
 }

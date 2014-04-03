@@ -1,0 +1,30 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="my.example.activityrecognition.app.CalendarActivity" >
+    
+    <item android:id="@+id/action_ignore"
+        android:title="@string/action_ignore"
+        android:menuCategory="container"
+        android:orderInCategory="2"
+        app:showAsAction="ifRoom" />
+
+    <item android:id="@+id/action_commit"
+        android:title="@string/action_commit"
+        android:menuCategory="container"
+        android:orderInCategory="1"
+        android:showAsAction="ifRoom" />
+    
+    <item android:id="@+id/action_clear"
+        android:title="@string/action_clear"
+        android:menuCategory="container"
+        android:orderInCategory="3"
+        app:showAsAction="ifRoom" />
+
+    <item android:id="@+id/action_done"
+        android:title="@string/action_done"
+        android:menuCategory="container"
+        android:orderInCategory="4"
+        android:showAsAction="ifRoom" />
+
+</menu>
