@@ -14,13 +14,12 @@ import android.widget.Toast;
 
 public class CollectorActivity extends ActionBarActivity {
 
-    // constants and static members
     private final String TAG = getClass().getSimpleName();
 
-    // UI elements, cached
-    private Button mBtnStartService, mBtnStopService;
+    private Button 
+        mBtnStartService, 
+        mBtnStopService;
     
-    // instance attributes
     private boolean mIsServiceRunning = false;
     private Context mContext;
     private HelperClass mHelperInstance;
@@ -56,7 +55,7 @@ public class CollectorActivity extends ActionBarActivity {
             @Override
             public void onClick(View view) {
 
-                Intent intent = new Intent(getApplicationContext(), my.example.activityrecognition.app.BackgroundService.class);
+                Intent intent = new Intent(getApplicationContext(), BackgroundService.class);
 
                 if (mIsServiceRunning) {
                     showToast("Service already running !");
@@ -106,7 +105,7 @@ public class CollectorActivity extends ActionBarActivity {
      */
     public boolean getServiceStatus() {
 
-        mIsServiceRunning = Boolean.parseBoolean(mHelperInstance.getFromPreferences(getApplicationContext(), "IS_RUNNING", "false"));
+        mIsServiceRunning = Boolean.parseBoolean(mHelperInstance.getFromPreferences( "IS_RUNNING", "false"));
 
         showToast("Getting Preferences: " + mIsServiceRunning);
 
@@ -121,7 +120,7 @@ public class CollectorActivity extends ActionBarActivity {
     public void setIsServiceRunning(boolean mIsServiceRunning) {
 
         this.mIsServiceRunning = mIsServiceRunning;
-        mHelperInstance.saveToPreferences(getApplicationContext(), "IS_RUNNING", String.valueOf(mIsServiceRunning));
+        mHelperInstance.saveToPreferences( "IS_RUNNING", String.valueOf(mIsServiceRunning));
 
         showToast("Setting Preferences: " + mIsServiceRunning);
     }

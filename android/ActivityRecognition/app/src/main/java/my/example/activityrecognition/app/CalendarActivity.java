@@ -24,14 +24,16 @@ import java.util.Arrays;
 
 public class CalendarActivity extends ActionBarActivity {
 
-    public static String[] content = new String[Constants.N_GRIDS];
-    public static boolean[] selected = new boolean[Constants.N_GRIDS];
-    public static boolean[] tempSelected = new boolean[Constants.N_GRIDS];
-    public static String[] days = new String[] {" ", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-
+    public static String[] 
+        content = new String[Constants.N_GRIDS],
+        days = new String[] {" ", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+    
+    public static boolean[] 
+        selected = new boolean[Constants.N_GRIDS],
+        tempSelected = new boolean[Constants.N_GRIDS];
+    
     private ActionBar mActionBar;
     private GridView mGrid, mHeaderGrid;
-
     private HelperClass mHelperInstance;
 
     /**
@@ -42,7 +44,12 @@ public class CalendarActivity extends ActionBarActivity {
         int row;
         boolean isEven = true;
 
-        for(int i=0; i < Constants.N_GRIDS; ++i){
+        for(int i=0; i < Constants.N_COLS; ++i){
+            content[i] = days[i];
+        }
+
+        // move ahead by one row, as the first row covers up the days
+        for(int i=Constants.N_COLS; i < Constants.N_GRIDS; ++i){
             hour = "";
             min = "";
             row = (int) (i/Constants.N_COLS);
@@ -66,11 +73,11 @@ public class CalendarActivity extends ActionBarActivity {
         setContentView(R.layout.activity_calendar);
 
         Bundle extras = getIntent().getExtras();
+        String schedule;
 
-        mHelperInstance = HelperClass.getInstance();
-
+        mHelperInstance = HelperClass.getInstance(this);
         // restore calendar preferences
-        String schedule = mHelperInstance.getFromPreferences(getApplicationContext(), "schedule", "");
+        schedule = mHelperInstance.getFromPreferences("schedule", "");
 
         // if some preferences are stored, restore it
         if(schedule != ""){
@@ -89,11 +96,7 @@ public class CalendarActivity extends ActionBarActivity {
         }
 
         mGrid = (GridView) findViewById(R.id.gridView);
-//        mHeaderGrid = (GridView) findViewById(R.id.headerGrid);
-
         mGrid.setAdapter(new CalendarAdapter(this, R.layout.grid_cell, R.id.textView, content));
-//        mHeaderGrid.setAdapter(new ArrayAdapter<String>(this, R.layout.header_grid, R.id.day, days));
-
         mGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
@@ -101,6 +104,11 @@ public class CalendarActivity extends ActionBarActivity {
                 if(mActionBar == null){
                     mActionBar = getSupportActionBar();
                     mActionBar.show();
+                }
+
+                // do nothing for first row and first column
+                if(position%8 == 0 || position/8 == 0){
+                    return;
                 }
 
                 if(tempSelected[position] == true){
@@ -168,8 +176,10 @@ public class CalendarActivity extends ActionBarActivity {
      */
     public void saveCalendar(){
         System.arraycopy(tempSelected, 0, selected, 0, tempSelected.length);
-        mHelperInstance.saveToPreferences(getApplicationContext(), "schedule", mHelperInstance.getGson().toJson(selected));
+        mHelperInstance.saveToPreferences("schedule", mHelperInstance.getGson().toJson(selected));
 
+        Log.d("CalendarActivity", "Schedule in Calendar Activity : " + mHelperInstance.getGson().toJson(selected));
+        Log.d("CalendarActivity", "Schedule from Preferences : " + mHelperInstance.getFromPreferences("schedule", ""));
         Toast.makeText(this, "Calendar successfully saved ", Toast.LENGTH_SHORT).show();
     }
 

@@ -22,6 +22,7 @@ public class HandlerService extends IntentService {
 
     private final String TAG = getClass().getSimpleName();
     private AudioManager mAudioManager;
+    private Context mContext;
 
     private Intent mNetworkHandlerIntent;
 
@@ -33,6 +34,8 @@ public class HandlerService extends IntentService {
     public void onCreate() {
 
         super.onCreate();
+
+        mContext = getApplicationContext();
     }
 
     @Override
@@ -53,15 +56,13 @@ public class HandlerService extends IntentService {
 
             ActivityRecognitionResult result = ActivityRecognitionResult.extractResult(intent);
             DetectedActivity mostProbableActivity = result.getMostProbableActivity();
-
             int confidence = mostProbableActivity.getConfidence();
-            String action = getType(mostProbableActivity.getType());
-
-            String ringerMode = getRingerModeAsString(mAudioManager.getRingerMode());
-//            new Feature(mostProbableActivity.getType(), confidence, now.get(Calendar.AM_PM), now.get(Calendar.HOUR), now.get(Calendar.DAY_OF_WEEK)).save(db);
+            String 
+                action = getType(mostProbableActivity.getType()),
+                ringerMode = getRingerModeAsString(mAudioManager.getRingerMode());
 
             Sample newSample = new Sample(
-                    getApplicationContext(),
+                    this,
                     mostProbableActivity.getType(),
                     mAudioManager.getRingerMode() ,
                     now.get(Calendar.AM_PM),

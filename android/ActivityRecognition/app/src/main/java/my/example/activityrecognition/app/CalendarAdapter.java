@@ -61,6 +61,7 @@ public class CalendarAdapter extends ArrayAdapter<String> {
 
         if(CalendarActivity.tempSelected[position] == true){
             view.setBackgroundColor(Color.RED);
+//            view.set
         }
         else{
             view.setBackgroundColor(Color.WHITE);

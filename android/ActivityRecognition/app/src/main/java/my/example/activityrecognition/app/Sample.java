@@ -4,17 +4,22 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.ActionMode;
 
 import com.google.gson.Gson;
 import com.orm.SugarRecord;
 import org.la4j.vector.Vector;
 import org.la4j.vector.dense.BasicVector;
 
+import java.util.Calendar;
+import java.util.Date;
+
 /**
  * Created by ggauravr on 4/2/14.
  */
-public class Sample extends SugarRecord<Sample> {
+public class Sample/* extends SugarRecord<Sample> */{
     /**
      *  class level constants
      */
@@ -30,6 +35,7 @@ public class Sample extends SugarRecord<Sample> {
     private int mApproxTime;
     private int mDayOfWeek;
     private int mHour;
+    private long mTimestamp;
     private int mPredictedLabel;
     private int mOriginalLabel;
 
@@ -38,23 +44,52 @@ public class Sample extends SugarRecord<Sample> {
 
     private Vector mModelVector = new BasicVector(new double[] {0, 0, 0, 0, 0});
 
-    public Sample(Context ctx){
+    /*public Sample(Context ctx){
         super(ctx);
-    }
+    }*/
 
     public Sample(Context ctx, int _activity, int _ringerMode, int _dayOfWeek,  int _approxTime, int _hour){
-        super(ctx);
+       /* super(ctx);*/
+
+        Calendar rightNow = Calendar.getInstance();
+        int hour, minute, row, col, position;
+        boolean[] schedule = new boolean[Constants.N_GRIDS];
 
         mContext = ctx;
+        mHelperInstance = HelperClass.getInstance();
 //        TO DO: get time and store the timestamp
+        mTimestamp = new Date().getTime();
         mActivity = _activity;
         mRingerMode = _ringerMode;
         mApproxTime = _approxTime;
         mDayOfWeek = _dayOfWeek;
         mHour = _hour;
 
-//        TO DO: fetch ground truth from the schedule and store it
-        mHelperInstance = HelperClass.getInstance();
+        // fetching true label for the given time from the saved schedule preferences
+        hour = rightNow.get(Calendar.HOUR_OF_DAY);
+        minute = rightNow.get(Calendar.MINUTE);
+
+        // calculate position of the current hour and min in the schedule saved
+        row = (Constants.INIT_HR - hour) *2 +1;
+        row = (minute/30) == 0 ? row : row+1;
+        col   = mDayOfWeek + 1;
+        position = row*Constants.N_COLS + 1;
+
+        Log.d(TAG, "Schedule : " + PreferenceManager.getDefaultSharedPreferences(mContext).getString("schedule", ""));
+
+       Log.d(TAG, "Model : " + mHelperInstance.getFromPreferences( "model", ""));
+       Log.d(TAG, "Schedule : " + mHelperInstance.getFromPreferences( "schedule", ""));
+
+       /* schedule = mHelperInstance.getGson().fromJson(mHelperInstance.getFromPreferences(mContext, "schedule", ""), boolean[].class);
+
+        if(schedule[position]){
+            mOriginalLabel = 1;
+        }
+
+        Log.d(TAG, "Hour : " + hour + ", Minute: " + minute);
+        Log.d(TAG, "Row : " + row + ", Column: " + col);
+        Log.d(TAG, "Position : " + position + ", Original Label: " + mOriginalLabel);*/
+
         handle();
     }
 
@@ -132,11 +167,11 @@ public class Sample extends SugarRecord<Sample> {
     }
 
     public void saveModel(){
-        mHelperInstance.saveToPreferences(mContext, "model", ( new BasicVector(mModelVector) ).toArray());
+        mHelperInstance.saveToPreferences( "model", ( new BasicVector(mModelVector) ).toArray());
     }
 
     public void fetchModel(){
-        String stringModel = HelperClass.getInstance().getFromPreferences(mContext, "model", "");
+        String stringModel = HelperClass.getInstance().getFromPreferences( "model", "");
         /**
          * TO DO: fetch params from network
          * 

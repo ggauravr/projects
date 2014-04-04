@@ -32,7 +32,7 @@ public class BackgroundService extends Service
     private PendingIntent mPendingIntent;
     private Handler mServiceHandler;
     private Looper mServiceLooper;
-    private DBHelper mDBHelper;
+    // private DBHelper mDBHelper;
 
     private final class ServiceHandler extends Handler {
         public ServiceHandler(Looper looper) {
@@ -55,7 +55,7 @@ public class BackgroundService extends Service
         mServiceLooper = thread.getLooper();
         mServiceHandler = new ServiceHandler(mServiceLooper);
 
-        connectToDB();
+        // connectToDB();
         connectToClient();
      }
 
@@ -66,16 +66,16 @@ public class BackgroundService extends Service
         return START_NOT_STICKY;
     }
 
-    public void connectToDB(){
+    /*public void connectToDB(){
         mDBHelper = new DBHelper(this);
 
-       SQLiteDatabase db = mDBHelper.getWritableDatabase();
+        SQLiteDatabase db = mDBHelper.getWritableDatabase();
 
         mDBHelper.fillActivityTable(db);
         mDBHelper.fillPlaceTable(db);
 
         mDBHelper.close();
-     }
+     }*/
 
     public void connectToClient(){
         int response = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);

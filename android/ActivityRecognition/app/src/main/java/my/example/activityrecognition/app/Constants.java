@@ -10,7 +10,7 @@ public class Constants {
     // initial hour : 7 AM
     public static final int 
         INIT_HR = 7,
-        N_ROWS = 27,
+        N_ROWS = 28,
         N_COLS = 8,
         N_GRIDS = N_ROWS * N_COLS;
 }
