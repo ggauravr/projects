@@ -48,8 +48,6 @@ public class HandlerService extends IntentService {
         mAudioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
         Calendar now = Calendar.getInstance();
 
-        Log.d(TAG, "handling intent");
-
         if(ActivityRecognitionResult.hasResult(intent)){
 //            DBHelper dbHelper = new DBHelper(this);
 //            SQLiteDatabase db = dbHelper.getWritableDatabase();
@@ -65,8 +63,8 @@ public class HandlerService extends IntentService {
                     this,
                     mostProbableActivity.getType(),
                     mAudioManager.getRingerMode() ,
-                    now.get(Calendar.AM_PM),
                     now.get(Calendar.DAY_OF_WEEK),
+                    now.get(Calendar.AM_PM),
                     (int)now.get(Calendar.HOUR)
             );
 

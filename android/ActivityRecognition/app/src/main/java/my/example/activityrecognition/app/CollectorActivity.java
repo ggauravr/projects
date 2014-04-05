@@ -12,7 +12,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
-public class CollectorActivity extends ActionBarActivity {
+public class CollectorActivity extends BaseUserActivity {
 
     private final String TAG = getClass().getSimpleName();
 
@@ -20,9 +20,9 @@ public class CollectorActivity extends ActionBarActivity {
         mBtnStartService, 
         mBtnStopService;
     
-    private boolean mIsServiceRunning = false;
+//    private boolean mIsServiceRunning = false;
     private Context mContext;
-    private HelperClass mHelperInstance;
+//    private HelperClass mHelperInstance;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,7 +31,7 @@ public class CollectorActivity extends ActionBarActivity {
 
 
         mHelperInstance = HelperClass.getInstance();
-        getServiceStatus();
+        mIsServiceRunning = mHelperInstance.getServiceStatus();
 
         mBtnStartService = (Button) findViewById(R.id.btn_start);
         mBtnStopService = (Button) findViewById(R.id.btn_stop);
@@ -55,15 +55,12 @@ public class CollectorActivity extends ActionBarActivity {
             @Override
             public void onClick(View view) {
 
-                Intent intent = new Intent(getApplicationContext(), BackgroundService.class);
-
                 if (mIsServiceRunning) {
                     showToast("Service already running !");
                     return;
                 }
-                
-                setIsServiceRunning(true);
-                startService(intent);
+
+                startActivityUpdates();
             }
         });
 
@@ -79,15 +76,12 @@ public class CollectorActivity extends ActionBarActivity {
             @Override
             public void onClick(View view) {
 
-                Intent intent = new Intent(getApplicationContext(), BackgroundService.class);
-
                 if (!mIsServiceRunning) {
                     showToast("Activity not running !");
                     return;
                 }
 
-                setIsServiceRunning(false);
-                stopService(intent);
+                stopActivityUpdates();
             }
         });
 
@@ -95,34 +89,6 @@ public class CollectorActivity extends ActionBarActivity {
 
     public void showToast(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
-    }
-
-    /**
-     * gets the running status of background service from shared preferences
-     * if not set, sets it to false
-     * 
-     * @return mIsServiceRunning - running status of the background service
-     */
-    public boolean getServiceStatus() {
-
-        mIsServiceRunning = Boolean.parseBoolean(mHelperInstance.getFromPreferences( "IS_RUNNING", "false"));
-
-        showToast("Getting Preferences: " + mIsServiceRunning);
-
-        return mIsServiceRunning;
-    }
-
-    /**
-     * changes the running status of the background service on start and stop
-     * 
-     * @param mIsServiceRunning - status to which it is to be set
-     */
-    public void setIsServiceRunning(boolean mIsServiceRunning) {
-
-        this.mIsServiceRunning = mIsServiceRunning;
-        mHelperInstance.saveToPreferences( "IS_RUNNING", String.valueOf(mIsServiceRunning));
-
-        showToast("Setting Preferences: " + mIsServiceRunning);
     }
 
     @Override

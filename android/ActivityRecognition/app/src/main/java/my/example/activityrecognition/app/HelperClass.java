@@ -43,10 +43,7 @@ public class HelperClass {
     }
 
     public String getFromPreferences(String key, String defaultValue){
-
         return mPreference.getString(key, defaultValue);
-
-//        return ctx.getSharedPreferences(Constants.PREFERENCES_FILE, 0).getString(key, defaultValue);
     }
 
     public Gson getGson(){
@@ -55,6 +52,17 @@ public class HelperClass {
         }
 
         return mGson;
+    }
+
+    public boolean getServiceStatus() {
+
+        return Boolean.parseBoolean(instance.getFromPreferences( "is_service_running", "false"));
+
+    }
+
+    public void setServiceStatus(boolean status){
+        instance.saveToPreferences( "is_service_running", String.valueOf(status));
+//        showToast("Setting Preferences: " + String.valueOf(status));
     }
 
 }

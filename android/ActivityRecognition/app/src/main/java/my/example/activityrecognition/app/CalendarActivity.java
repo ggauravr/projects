@@ -19,10 +19,13 @@ import android.widget.GridView;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.Type;
 import java.util.Arrays;
+import java.util.List;
 
-public class CalendarActivity extends ActionBarActivity {
+public class CalendarActivity extends BaseUserActivity {
 
     public static String[] 
         content = new String[Constants.N_GRIDS],
@@ -34,16 +37,17 @@ public class CalendarActivity extends ActionBarActivity {
     
     private ActionBar mActionBar;
     private GridView mGrid, mHeaderGrid;
-    private HelperClass mHelperInstance;
+//    private HelperClass mHelperInstance;
 
     /**
      * static block to initialize the time grid
      */
     static {
         String hour, min;
-        int row;
-        boolean isEven = true;
+        int row, temp;
+        boolean isEven = false;
 
+        /* initialize days of the week */
         for(int i=0; i < Constants.N_COLS; ++i){
             content[i] = days[i];
         }
@@ -53,17 +57,20 @@ public class CalendarActivity extends ActionBarActivity {
             hour = "";
             min = "";
             row = (int) (i/Constants.N_COLS);
+            temp = isEven ? (row-1)/2 : row/2;
 
             if(i%Constants.N_COLS == 0){
-                hour = String.format("%02d", Constants.INIT_HR + (int)(row/2));
-                min = isEven ? "00" : "30";
+                hour = String.format("%02d", Constants.INIT_HR + temp);
+                min = isEven ? "30" : "00";
                 isEven = !isEven;
             }
 
             content[i] = hour +" "+min;
+//            Log.d("CalendarActivity", "i = " + i);
         }
 
 //        initialize the temporary selections to the actual preferences
+//        Log.d("CalendarActivity", "Content Length : " + content.length);
         System.arraycopy(selected, 0, tempSelected, 0, selected.length);
     }
 
@@ -75,13 +82,17 @@ public class CalendarActivity extends ActionBarActivity {
         Bundle extras = getIntent().getExtras();
         String schedule;
 
-        mHelperInstance = HelperClass.getInstance(this);
+//        mHelperInstance = HelperClass.getInstance(this);
+
         // restore calendar preferences
         schedule = mHelperInstance.getFromPreferences("schedule", "");
+//        Log.d("Calendar", schedule);
 
         // if some preferences are stored, restore it
         if(schedule != ""){
-            selected = mHelperInstance.getGson().fromJson(schedule, boolean[].class);
+            Gson gson = new Gson();
+//            Log.d("CalendarActivity", "Schedule : " + schedule);
+            selected = gson.fromJson(schedule, boolean[].class);
             System.arraycopy(selected, 0, tempSelected, 0, selected.length);
 
             /**
@@ -93,6 +104,10 @@ public class CalendarActivity extends ActionBarActivity {
                 // move on to the services/collector activity and close/finish the current calendar activity
                 startCollectorActivity();
             }
+        }
+        else{
+            // if not scheduled, stop any running activity updates
+            stopActivityUpdates();
         }
 
         mGrid = (GridView) findViewById(R.id.gridView);
@@ -175,11 +190,10 @@ public class CalendarActivity extends ActionBarActivity {
      * [saveCalendar description]
      */
     public void saveCalendar(){
+        Log.d("CalendarActivity","Temp Length : " + tempSelected.length + ", Other Length : " + selected.length);
         System.arraycopy(tempSelected, 0, selected, 0, tempSelected.length);
-        mHelperInstance.saveToPreferences("schedule", mHelperInstance.getGson().toJson(selected));
+        mHelperInstance.saveToPreferences("schedule", selected);
 
-        Log.d("CalendarActivity", "Schedule in Calendar Activity : " + mHelperInstance.getGson().toJson(selected));
-        Log.d("CalendarActivity", "Schedule from Preferences : " + mHelperInstance.getFromPreferences("schedule", ""));
         Toast.makeText(this, "Calendar successfully saved ", Toast.LENGTH_SHORT).show();
     }
 

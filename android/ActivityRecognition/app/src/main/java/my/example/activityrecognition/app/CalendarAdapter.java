@@ -38,7 +38,7 @@ public class CalendarAdapter extends ArrayAdapter<String> {
 
     @Override
     public int getCount() {
-        return 200;
+        return mValues.length;
     }
 
     @Override

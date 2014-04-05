@@ -1,15 +1,13 @@
 package my.example.activityrecognition.app;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.preference.PreferenceManager;
 import android.util.Log;
-import android.view.ActionMode;
 
 import com.google.gson.Gson;
-import com.orm.SugarRecord;
+
 import org.la4j.vector.Vector;
 import org.la4j.vector.dense.BasicVector;
 
@@ -19,16 +17,16 @@ import java.util.Date;
 /**
  * Created by ggauravr on 4/2/14.
  */
-public class Sample/* extends SugarRecord<Sample> */{
+public class Sample/* extends SugarRecord<Sample> */ {
     /**
-     *  class level constants
+     * class level constants
      */
     private static final String TAG = "Sample";
     private static final int TYPE_SAMPLE = 1;
-    private static final int TYPE_MODEL   = 2;
-    private static final double LAMBDA =  0.0001;
+    private static final int TYPE_MODEL = 2;
+    private static final double LAMBDA = 0.0001;
 
-//    private long int mTimestamp;
+    //    private long int mTimestamp;
     private Context mContext;
     private int mActivity;
     private int mRingerMode;
@@ -42,13 +40,13 @@ public class Sample/* extends SugarRecord<Sample> */{
     private Gson mGson = null;
     private HelperClass mHelperInstance;
 
-    private Vector mModelVector = new BasicVector(new double[] {0, 0, 0, 0, 0});
+    private Vector mModelVector = new BasicVector(new double[]{0, 0, 0, 0, 0});
 
     /*public Sample(Context ctx){
         super(ctx);
     }*/
 
-    public Sample(Context ctx, int _activity, int _ringerMode, int _dayOfWeek,  int _approxTime, int _hour){
+    public Sample(Context ctx, int _activity, int _ringerMode, int _dayOfWeek, int _approxTime, int _hour) {
        /* super(ctx);*/
 
         Calendar rightNow = Calendar.getInstance();
@@ -64,43 +62,43 @@ public class Sample/* extends SugarRecord<Sample> */{
         mApproxTime = _approxTime;
         mDayOfWeek = _dayOfWeek;
         mHour = _hour;
+//        check and set it later
+        mOriginalLabel = 0;
 
         // fetching true label for the given time from the saved schedule preferences
         hour = rightNow.get(Calendar.HOUR_OF_DAY);
         minute = rightNow.get(Calendar.MINUTE);
 
         // calculate position of the current hour and min in the schedule saved
-        row = (Constants.INIT_HR - hour) *2 +1;
-        row = (minute/30) == 0 ? row : row+1;
-        col   = mDayOfWeek + 1;
-        position = row*Constants.N_COLS + 1;
+        row = Math.abs(Constants.INIT_HR - hour) * 2 + 1;
+        row = (minute / 30) == 0 ? row : row + 1;
+        col = mDayOfWeek;
+        position = row * Constants.N_COLS + col;
 
-        Log.d(TAG, "Schedule : " + PreferenceManager.getDefaultSharedPreferences(mContext).getString("schedule", ""));
+        String stringSchedule = mHelperInstance.getFromPreferences("schedule", "[]");
+        Log.d(TAG, stringSchedule);
+//        Log.d(TAG, mHelperInstance.getGson().fromJson(stringSchedule, boolean[].class).toString());
+        schedule = mHelperInstance.getGson().fromJson(mHelperInstance.getFromPreferences("schedule", ""), boolean[].class);
 
-       Log.d(TAG, "Model : " + mHelperInstance.getFromPreferences( "model", ""));
-       Log.d(TAG, "Schedule : " + mHelperInstance.getFromPreferences( "schedule", ""));
-
-       /* schedule = mHelperInstance.getGson().fromJson(mHelperInstance.getFromPreferences(mContext, "schedule", ""), boolean[].class);
-
-        if(schedule[position]){
+        if (position < Constants.N_GRIDS && schedule[position]) {
             mOriginalLabel = 1;
         }
 
-        Log.d(TAG, "Hour : " + hour + ", Minute: " + minute);
+        Log.d(TAG, "Hour : " + hour + ", Minute: " + minute + ", Day Of Week: " + mDayOfWeek);
         Log.d(TAG, "Row : " + row + ", Column: " + col);
-        Log.d(TAG, "Position : " + position + ", Original Label: " + mOriginalLabel);*/
+        Log.d(TAG, "Position : " + position + ", Original Label: " + mOriginalLabel);
 
-        handle();
+//        handle();
     }
 
-    public void handle(){
+    public void handle() {
 
-        if(isConnectedToNetwork()){
+        if (isConnectedToNetwork()) {
             /**
              * fetch model parameters
              * save latest param in the preferences file ??
              * if there are previous entries stored in DB, send them to th server
-             * 
+             *
              */
             fetchModel();
             saveModel();
@@ -111,35 +109,34 @@ public class Sample/* extends SugarRecord<Sample> */{
         /**
          * compute the gradient, and train the model
          *
-         */        
+         */
         updateModel(getGradient());
 
-        if(isConnectedToNetwork()){
+        if (isConnectedToNetwork()) {
             /**
              * sync any remaining DB entries, before updating the current one
              * sync data with the server
              *
              */
-        }
-        else{
+        } else {
             /**
              * store the computations in DB
              */
         }
     }
 
-    public Vector getVector(int type){
+    public Vector getVector(int type) {
 
-        Vector vector= null;
+        Vector vector = null;
 
-        if(type == TYPE_SAMPLE){
+        if (type == TYPE_SAMPLE) {
             vector = new BasicVector(new double[]{mActivity, mRingerMode, mDayOfWeek, mApproxTime, mHour});
         }
 
         return vector;
     }
 
-    public boolean isConnectedToNetwork(){
+    public boolean isConnectedToNetwork() {
 
         ConnectivityManager connMgr = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
@@ -150,42 +147,42 @@ public class Sample/* extends SugarRecord<Sample> */{
         return false;
     }
 
-    public Vector getGradient(){
+    public Vector getGradient() {
         Vector x = getVector(TYPE_SAMPLE);
         double wx = x.innerProduct(mModelVector);
-        double probability = 1/(1+Math.exp(-wx));
-        double factor = -((double)mOriginalLabel - probability)*probability*(1-probability);
+        double probability = 1 / (1 + Math.exp(-wx));
+        double factor = -((double) mOriginalLabel - probability) * probability * (1 - probability);
 
         // gradient
         return x.multiply(factor);
     }
 
-    public void updateModel(Vector gradient){
+    public void updateModel(Vector gradient) {
         mModelVector = mModelVector.subtract(gradient.multiply(LAMBDA));
 
         saveModel();
     }
 
-    public void saveModel(){
-        mHelperInstance.saveToPreferences( "model", ( new BasicVector(mModelVector) ).toArray());
+    public void saveModel() {
+        mHelperInstance.saveToPreferences("model", (new BasicVector(mModelVector)).toArray());
     }
 
-    public void fetchModel(){
-        String stringModel = HelperClass.getInstance().getFromPreferences( "model", "");
+    public void fetchModel() {
+        String stringModel = HelperClass.getInstance().getFromPreferences("model", "");
         /**
          * TO DO: fetch params from network
-         * 
+         *
          *  fetch model params from network
-         * 
+         *
          */
-        
+
         // if some preferences are stored, restore it
-        if(stringModel != ""){
+        if (stringModel != "") {
             mModelVector = new BasicVector(mHelperInstance.getGson().fromJson(stringModel, double[].class));
         }
     }
 
-    public void syncEntries(){
+    public void syncEntries() {
 
     }
 

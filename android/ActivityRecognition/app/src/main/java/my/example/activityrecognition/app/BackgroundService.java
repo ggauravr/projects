@@ -32,6 +32,8 @@ public class BackgroundService extends Service
     private PendingIntent mPendingIntent;
     private Handler mServiceHandler;
     private Looper mServiceLooper;
+    private boolean mCmd;
+
     // private DBHelper mDBHelper;
 
     private final class ServiceHandler extends Handler {
@@ -61,7 +63,9 @@ public class BackgroundService extends Service
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "call to start service.. ");
+
+        mCmd = intent.getBooleanExtra("stop_activity_updates", false);
+        Log.d(TAG, "Command : " + String.valueOf(mCmd));
 
         return START_NOT_STICKY;
     }
@@ -84,7 +88,6 @@ public class BackgroundService extends Service
         Log.d(TAG, "connecting to google play services.. + response : " + response + ":: " + ConnectionResult.SUCCESS);
 
         if (response == ConnectionResult.SUCCESS) {
-            Log.d(TAG, "successfully connnected to google play sevices");
             mARClient = new ActivityRecognitionClient(this, this, this);
             mARClient.connect();
             mPendingIntent = PendingIntent.getService(this, 1000, intent, PendingIntent.FLAG_UPDATE_CURRENT );
@@ -100,9 +103,7 @@ public class BackgroundService extends Service
     public void onDestroy() {
 
         if(mARClient!=null){
-            Log.d(TAG, "Destroying IntentService.. removing activity updates and disconnecting client");
-            mARClient.removeActivityUpdates(mPendingIntent);
-            mARClient.disconnect();
+            stopActivityUpdates();
         }
         
         mServiceLooper.quit();
@@ -120,10 +121,11 @@ public class BackgroundService extends Service
 
     @Override
     public void onConnected(Bundle bundle) {
-        mARClient.requestActivityUpdates(5000, mPendingIntent);
+        mARClient.requestActivityUpdates(50000, mPendingIntent);
 
-        Log.d(TAG, "onConnected called");
-
+        if(mCmd){
+            stopSelf();
+        }
     }
 
     @Override
@@ -134,5 +136,11 @@ public class BackgroundService extends Service
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
 
+    }
+
+    public void stopActivityUpdates(){
+        Log.d(TAG, "Destroying IntentService.. removing activity updates and disconnecting client");
+        mARClient.removeActivityUpdates(mPendingIntent);
+        mARClient.disconnect();
     }
 }

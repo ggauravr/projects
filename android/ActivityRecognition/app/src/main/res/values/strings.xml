@@ -9,5 +9,6 @@
     <string name="action_done">Done</string>
     <string name="action_clear">Clear</string>
     <string name="action_reschedule">Reschedule</string>
+    <string name="title_activity_base_user">BaseUserActivity</string>
 
 </resources>
