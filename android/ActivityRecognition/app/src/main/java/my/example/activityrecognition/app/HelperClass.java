@@ -1,5 +1,6 @@
 package my.example.activityrecognition.app;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.Preference;
@@ -7,6 +8,9 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.google.gson.Gson;
+
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Created by ggauravr on 4/3/14.
@@ -17,6 +21,8 @@ public class HelperClass {
     private Gson mGson;
     private static Context mContext;
     private SharedPreferences mPreference;
+
+    private static final String BG_SERVICE_NAME = "my.example.activityrecognition.app.BackgroundService";
 
     public static HelperClass getInstance(){
 
@@ -62,12 +68,34 @@ public class HelperClass {
         return mGson;
     }
 
-    public boolean getServiceStatus() {
+    /*public boolean getServiceStatus() {
+
         String stringStatus = instance.getFromPreferences( "is_service_running", "false");
         Log.d("HelperClass", "Getting Service Status.. " + stringStatus);
 
         return Boolean.parseBoolean(stringStatus);
 
+    }*/
+
+    public boolean getServiceStatus(){
+        return getServiceStatus(BG_SERVICE_NAME);
+    }
+
+    private boolean getServiceStatus(String serviceName){
+        boolean serviceRunning = false;
+        ActivityManager am = (ActivityManager) mContext.getSystemService("activity");
+        List<ActivityManager.RunningServiceInfo> l = am.getRunningServices(50);
+        Iterator<ActivityManager.RunningServiceInfo> i = l.iterator();
+
+        while (i.hasNext()) {
+            ActivityManager.RunningServiceInfo runningServiceInfo = (ActivityManager.RunningServiceInfo) i.next();
+            Log.d("HelperClass", "Class Name is : " + runningServiceInfo.service.getClassName());
+            if(runningServiceInfo.service.getClassName().equals(serviceName)){
+                serviceRunning = true;
+            }
+        }
+        Log.d("HelperClass", "getServiceStatus : " + serviceRunning);
+        return serviceRunning;
     }
 
     public void setServiceStatus(boolean status){

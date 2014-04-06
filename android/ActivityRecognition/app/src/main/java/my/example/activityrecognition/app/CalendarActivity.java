@@ -109,7 +109,7 @@ public class CalendarActivity extends BaseUserActivity {
         else{
             // if not scheduled, stop any running activity updates
             // create a new background service to terminate existing udpates
-            stopActivityUpdates(true);
+            stopActivityUpdates(!mHelperInstance.getServiceStatus());
         }
 
         mGrid = (GridView) findViewById(R.id.gridView);

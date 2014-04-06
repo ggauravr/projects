@@ -73,13 +73,13 @@ public class CollectorActivity extends BaseUserActivity {
             @Override
             public void onClick(View view) {
 
-                if (!mHelperInstance.getServiceStatus()) {
+               /* if (!mHelperInstance.getServiceStatus()) {
                     showToast("Activity not running !");
                     return;
-                }
+                }*/
 
                 // fase - don't create a new service
-                stopActivityUpdates(false);
+                stopActivityUpdates(!mHelperInstance.getServiceStatus());
             }
         });
 
