@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -20,18 +21,14 @@ public class CollectorActivity extends BaseUserActivity {
         mBtnStartService, 
         mBtnStopService;
     
-//    private boolean mIsServiceRunning = false;
     private Context mContext;
-//    private HelperClass mHelperInstance;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_collector);
 
-
         mHelperInstance = HelperClass.getInstance();
-        mIsServiceRunning = mHelperInstance.getServiceStatus();
 
         mBtnStartService = (Button) findViewById(R.id.btn_start);
         mBtnStopService = (Button) findViewById(R.id.btn_stop);
@@ -55,7 +52,7 @@ public class CollectorActivity extends BaseUserActivity {
             @Override
             public void onClick(View view) {
 
-                if (mIsServiceRunning) {
+                if (mHelperInstance.getServiceStatus()) {
                     showToast("Service already running !");
                     return;
                 }
@@ -76,12 +73,13 @@ public class CollectorActivity extends BaseUserActivity {
             @Override
             public void onClick(View view) {
 
-                if (!mIsServiceRunning) {
+                if (!mHelperInstance.getServiceStatus()) {
                     showToast("Activity not running !");
                     return;
                 }
 
-                stopActivityUpdates();
+                // fase - don't create a new service
+                stopActivityUpdates(false);
             }
         });
 

@@ -10,6 +10,7 @@ import com.google.gson.Gson;
 
 import org.la4j.vector.Vector;
 import org.la4j.vector.dense.BasicVector;
+import org.w3c.dom.Text;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -52,9 +53,11 @@ public class Sample/* extends SugarRecord<Sample> */ {
         Calendar rightNow = Calendar.getInstance();
         int hour, minute, row, col, position;
         boolean[] schedule = new boolean[Constants.N_GRIDS];
+        String stringSchedule;
 
         mContext = ctx;
-        mHelperInstance = HelperClass.getInstance();
+        mHelperInstance = HelperClass.getInstance(ctx);
+
 //        TO DO: get time and store the timestamp
         mTimestamp = new Date().getTime();
         mActivity = _activity;
@@ -74,11 +77,14 @@ public class Sample/* extends SugarRecord<Sample> */ {
         row = (minute / 30) == 0 ? row : row + 1;
         col = mDayOfWeek;
         position = row * Constants.N_COLS + col;
+        stringSchedule = mHelperInstance.getFromPreferences("schedule", "");
 
-        String stringSchedule = mHelperInstance.getFromPreferences("schedule", "[]");
-        Log.d(TAG, stringSchedule);
-//        Log.d(TAG, mHelperInstance.getGson().fromJson(stringSchedule, boolean[].class).toString());
-        schedule = mHelperInstance.getGson().fromJson(mHelperInstance.getFromPreferences("schedule", ""), boolean[].class);
+        if(stringSchedule == ""){
+            Log.d(TAG, "schedule string is empty.. returning");
+            return;
+        }
+
+        schedule = mHelperInstance.getGson().fromJson(stringSchedule, boolean[].class);
 
         if (position < Constants.N_GRIDS && schedule[position]) {
             mOriginalLabel = 1;

@@ -60,7 +60,7 @@ public class HandlerService extends IntentService {
                 ringerMode = getRingerModeAsString(mAudioManager.getRingerMode());
 
             Sample newSample = new Sample(
-                    this,
+                    getApplicationContext(),
                     mostProbableActivity.getType(),
                     mAudioManager.getRingerMode() ,
                     now.get(Calendar.DAY_OF_WEEK),

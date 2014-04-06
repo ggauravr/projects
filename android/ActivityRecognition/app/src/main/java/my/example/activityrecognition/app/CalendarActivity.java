@@ -37,7 +37,9 @@ public class CalendarActivity extends BaseUserActivity {
     
     private ActionBar mActionBar;
     private GridView mGrid, mHeaderGrid;
-//    private HelperClass mHelperInstance;
+
+    // inherited attributes : mIsServiceRunning and mHelperInstance
+    // defined in BaseUserActivity
 
     /**
      * static block to initialize the time grid
@@ -66,12 +68,14 @@ public class CalendarActivity extends BaseUserActivity {
             }
 
             content[i] = hour +" "+min;
-//            Log.d("CalendarActivity", "i = " + i);
         }
 
-//        initialize the temporary selections to the actual preferences
-//        Log.d("CalendarActivity", "Content Length : " + content.length);
         System.arraycopy(selected, 0, tempSelected, 0, selected.length);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
     }
 
     @Override
@@ -82,17 +86,14 @@ public class CalendarActivity extends BaseUserActivity {
         Bundle extras = getIntent().getExtras();
         String schedule;
 
-//        mHelperInstance = HelperClass.getInstance(this);
+        mHelperInstance = HelperClass.getInstance();
 
         // restore calendar preferences
         schedule = mHelperInstance.getFromPreferences("schedule", "");
-//        Log.d("Calendar", schedule);
 
         // if some preferences are stored, restore it
         if(schedule != ""){
-            Gson gson = new Gson();
-//            Log.d("CalendarActivity", "Schedule : " + schedule);
-            selected = gson.fromJson(schedule, boolean[].class);
+            selected = mHelperInstance.getGson().fromJson(schedule, boolean[].class);
             System.arraycopy(selected, 0, tempSelected, 0, selected.length);
 
             /**
@@ -107,7 +108,8 @@ public class CalendarActivity extends BaseUserActivity {
         }
         else{
             // if not scheduled, stop any running activity updates
-            stopActivityUpdates();
+            // create a new background service to terminate existing udpates
+            stopActivityUpdates(true);
         }
 
         mGrid = (GridView) findViewById(R.id.gridView);
@@ -190,7 +192,6 @@ public class CalendarActivity extends BaseUserActivity {
      * [saveCalendar description]
      */
     public void saveCalendar(){
-        Log.d("CalendarActivity","Temp Length : " + tempSelected.length + ", Other Length : " + selected.length);
         System.arraycopy(tempSelected, 0, selected, 0, tempSelected.length);
         mHelperInstance.saveToPreferences("schedule", selected);
 

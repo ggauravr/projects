@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.Preference;
 import android.preference.PreferenceManager;
+import android.util.Log;
 
 import com.google.gson.Gson;
 
@@ -24,11 +25,18 @@ public class HelperClass {
     }
 
     public static HelperClass getInstance(Context ctx){
+        // initialized in the globalContextApp class, during application initialization
+        // so any other activity or service can just call getInstance(), without the context
+        // and still get the same instance..
         mContext = ctx;
         if(instance == null){
             instance = new HelperClass();
 
+            Log.i("HelperClass", "Initializing HelperClass Instance");
+
             instance.mGson = new Gson();
+            // shared preferences is now used in a global context, so accessing this from anywhere
+            // should give the same results
             instance.mPreference = PreferenceManager.getDefaultSharedPreferences(ctx);
         }
 
@@ -55,14 +63,16 @@ public class HelperClass {
     }
 
     public boolean getServiceStatus() {
+        String stringStatus = instance.getFromPreferences( "is_service_running", "false");
+        Log.d("HelperClass", "Getting Service Status.. " + stringStatus);
 
-        return Boolean.parseBoolean(instance.getFromPreferences( "is_service_running", "false"));
+        return Boolean.parseBoolean(stringStatus);
 
     }
 
     public void setServiceStatus(boolean status){
-        instance.saveToPreferences( "is_service_running", String.valueOf(status));
-//        showToast("Setting Preferences: " + String.valueOf(status));
+        Log.d("HelperClass", "Setting Service Status to.. " + status);
+        instance.saveToPreferences( "is_service_running", status);
     }
 
 }

@@ -85,7 +85,7 @@ public class BackgroundService extends Service
         int response = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
         Intent intent = new Intent(this, HandlerService.class);
 
-        Log.d(TAG, "connecting to google play services.. + response : " + response + ":: " + ConnectionResult.SUCCESS);
+        // Log.d(TAG, "connecting to google play services.. + response : " + response + ":: " + ConnectionResult.SUCCESS);
 
         if (response == ConnectionResult.SUCCESS) {
             mARClient = new ActivityRecognitionClient(this, this, this);
@@ -121,7 +121,7 @@ public class BackgroundService extends Service
 
     @Override
     public void onConnected(Bundle bundle) {
-        mARClient.requestActivityUpdates(50000, mPendingIntent);
+        mARClient.requestActivityUpdates(10000, mPendingIntent);
 
         if(mCmd){
             stopSelf();
