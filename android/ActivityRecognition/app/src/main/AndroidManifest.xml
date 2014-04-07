@@ -5,6 +5,7 @@
     <!-- permission for activity recognition -->
     <uses-permission android:name="com.google.android.gms.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="com.android.vending.BILLING" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- GlobalContextApp extends "com.orm.SugarApp" -->
     <application

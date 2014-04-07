@@ -66,8 +66,6 @@ public class HandlerService extends IntentService {
         Calendar now = Calendar.getInstance();
 
         if(ActivityRecognitionResult.hasResult(intent)){
-//            DBHelper dbHelper = new DBHelper(this);
-//            SQLiteDatabase db = dbHelper.getWritableDatabase();
 
             ActivityRecognitionResult result = ActivityRecognitionResult.extractResult(intent);
             DetectedActivity mostProbableActivity = result.getMostProbableActivity();

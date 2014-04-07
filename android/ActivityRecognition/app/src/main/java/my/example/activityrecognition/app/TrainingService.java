@@ -21,30 +21,37 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.la4j.vector.Vector;
 import org.la4j.vector.dense.BasicVector;
 
+import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 public class TrainingService extends Service {
 
-    private final String TAG = "TrainingService";
-    private RequestQueue mRequestQueue;
-    private static final String API_URL = "http://www.ml-training.appspot.com/test";
-    private Sample mSample;
+    private static final String 
+        TAG = "TrainingService",
+        API_URL = "http://www.ml-training.appspot.com/test";
+        // API_URL = "http://127.0.0.1:8080/test"
 
-    private static final int TYPE_SAMPLE = 1;
-    private static final int TYPE_MODEL = 2;
+    private static final int 
+        TYPE_SAMPLE = 1, 
+        TYPE_MODEL = 2;
+
     private static final double LAMBDA = 0.0001;
 
+    private RequestQueue mRequestQueue;
+    private Sample mSample;
     private Gson mGson = null;
     private HelperClass mHelperInstance;
-
-    private Vector mModelVector = new BasicVector(new double[]{0, 0, 0, 0, 0});
+    private Vector
+            mModelVector = new BasicVector(new double[]{0, 0, 0, 0, 0}),
+            mGradient = new BasicVector(new double[]{0, 0, 0, 0, 0});
 
     public TrainingService() {
 
@@ -102,7 +109,6 @@ public class TrainingService extends Service {
      * Training and Sample processing functions
      *
      * */
-
     public void getOriginalLabel(){
         int hour, minute, row, col, position, label = 0;
         String stringSchedule;
@@ -142,18 +148,21 @@ public class TrainingService extends Service {
              * save latest param in the preferences file ??
              * if there are previous entries stored in DB, send them to th server
              *
+             * updateGradient() and updateModel() called in handleResponse
              */
             fetchModel();
-            saveModel();
+//            saveModel();
 
             syncEntries();
         }
+        else{
+            /**
+             * compute the gradient, and train the model
+             *
+             */
 
-        /**
-         * compute the gradient, and train the model
-         *
-         */
-        updateModel(getGradient());
+            updateModel();
+        }
 
         if (isConnectedToNetwork()) {
             /**
@@ -168,24 +177,6 @@ public class TrainingService extends Service {
         }
     }
 
-    public Vector getVector(int type) {
-
-        Vector vector = null;
-
-        if (type == TYPE_SAMPLE) {
-            vector = new BasicVector(
-                    new double[]{
-                        mSample.getActivity(),
-                        mSample.getRingerMode(),
-                        mSample.getDayOfWeek(),
-                        mSample.getApproxTime(),
-                        mSample.getHour()
-                    });
-        }
-
-        return vector;
-    }
-
     public boolean isConnectedToNetwork() {
 
         ConnectivityManager connMgr = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -197,18 +188,25 @@ public class TrainingService extends Service {
         return false;
     }
 
-    public Vector getGradient() {
-        Vector x = getVector(TYPE_SAMPLE);
-        double wx = x.innerProduct(mModelVector);
-        double probability = 1 / (1 + Math.exp(-wx));
-        double factor = -((double) mSample.getOriginalLabel() - probability) * probability * (1 - probability);
+    public void updateGradient() {
+        Vector x = mSample.getSampleVector();
+        double
+                wx = x.innerProduct(mModelVector),
+                probability = 1 / (1 + Math.exp(-wx)),
+                factor = -((double) mSample.getOriginalLabel() - probability) * probability * (1 - probability);
 
-        // gradient
-        return x.multiply(factor);
+        mGradient = x.multiply(factor);
+
     }
 
-    public void updateModel(Vector gradient) {
-        mModelVector = mModelVector.subtract(gradient.multiply(LAMBDA));
+    public void saveGradient(){
+        mHelperInstance.saveToPreferences("gradient", (new BasicVector(mGradient)).toArray());
+    }
+
+    public void updateModel() {
+        updateGradient();
+        Log.d(TAG, "Update Model called .. ");
+        mModelVector = mModelVector.subtract(mGradient.multiply(LAMBDA));
 
         saveModel();
     }
@@ -225,7 +223,6 @@ public class TrainingService extends Service {
          *  fetch model params from network
          *
          */
-
         fetchDataFromServer();
 
         // if some preferences are stored, restore it
@@ -236,6 +233,20 @@ public class TrainingService extends Service {
 
     public void syncEntries() {
 
+    }
+
+    public void predict(){
+        Vector x = mSample.getSampleVector();
+        double wx = x.innerProduct(mModelVector);
+        double probability = 1 / (1 + Math.exp(-wx));
+        int label = 0;
+
+        Log.d(TAG, " Probability.. " + probability);
+        if(probability > 0.5){
+            label = 1;
+        }
+        Log.d(TAG, "Probability .. " + probability + ", Predicted Class : " + label + ", Original Class : " + mSample.getOriginalLabel());
+        mSample.setPredictedLabel(label);
     }
 
     /**
@@ -254,6 +265,8 @@ public class TrainingService extends Service {
 
         VolleyLog.d("Adding request to Queue.. %s\n", request.getUrl());
 
+        /* by default Volley cached JSON responses */
+        request.setShouldCache(false);
         getRequestQueue().add(request);
     }
 
@@ -303,8 +316,10 @@ public class TrainingService extends Service {
             @Override
             protected Map<String,String> getParams(){
                 Map<String,String> params = new HashMap<String, String>();
-                params.put("cmd", "TestPostCmd");
-                params.put("msg", "TestPostMsg");
+                Gson gson = mHelperInstance.getGson();
+                params.put("sample", gson.toJson((new BasicVector(mSample.getSampleVector())).toArray()));
+                params.put("model", gson.toJson((new BasicVector(mModelVector)).toArray()));
+                params.put("gradient", gson.toJson((new BasicVector(mGradient)).toArray()));
 
                 return params;
             }
@@ -317,18 +332,33 @@ public class TrainingService extends Service {
             }
         };
 
+        Log.d(TAG, "Making post request..");
         addRequestToQueue(stringPUTRequest, "");
 
     }
 
     public void handleDataFromServer(String response){
-        Log.d(TAG, "Response from the server received .. " + response);
-//        VolleyLog.v(response.toString());
+        /** response from POST request */
+        Log.d(TAG, "POST response .. " + response);
     }
 
     public void handleDataFromServer(JSONObject response){
-        Log.d(TAG, "Response from the server received .. " + response.toString());
+        /** response from GET request */
+        Log.d(TAG, "GET Response .. " + response.toString());
+        try {
+            JSONArray jsonArray = response.getJSONArray("model");
+            double[] modelArray = mHelperInstance.getGson().fromJson(jsonArray.toString(), double[].class);
+            Log.d(TAG, " modelArray is " + Arrays.toString(modelArray));
+            mModelVector = new BasicVector(modelArray);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        saveModel();
+        /* update done after the model is fetched from server */
+        updateModel();
+        predict();
 
+        sendDataToServer();
     }
 
     public void handleError(VolleyError error){

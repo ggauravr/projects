@@ -42,7 +42,7 @@ public class BackgroundService extends Service
 {
 
     private final String TAG = getClass().getSimpleName();
-    private final int SAMPLE_FREQUENCY = 10000;
+    private final int SAMPLE_FREQUENCY = 30000;
 
     private BroadcastReceiver mBroadcastReceiver;
     private ActivityRecognitionClient mARClient;
