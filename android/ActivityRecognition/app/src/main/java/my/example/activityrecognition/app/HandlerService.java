@@ -8,12 +8,26 @@ import android.database.sqlite.SQLiteDatabase;
 import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.text.TextUtils;
 import android.util.Log;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.VolleyLog;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.location.ActivityRecognitionResult;
 import com.google.android.gms.location.DetectedActivity;
 
+import org.json.JSONObject;
+
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by ggauravr on 3/1/14.
@@ -25,6 +39,7 @@ public class HandlerService extends IntentService {
     private Context mContext;
 
     private Intent mNetworkHandlerIntent;
+    private Sample mSample;
 
     public HandlerService(){
         super("HandlerService");
@@ -36,11 +51,13 @@ public class HandlerService extends IntentService {
         super.onCreate();
 
         mContext = getApplicationContext();
+
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        Log.d(TAG, "HandlerService being destroyed.. ");
     }
 
     @Override
@@ -59,16 +76,22 @@ public class HandlerService extends IntentService {
                 action = getType(mostProbableActivity.getType()),
                 ringerMode = getRingerModeAsString(mAudioManager.getRingerMode());
 
-            Sample newSample = new Sample(
+            Intent trainingServiceIntent = new Intent(mContext, TrainingService.class);
+            trainingServiceIntent.putExtra("activity_type",mostProbableActivity.getType() );
+            trainingServiceIntent.putExtra("ringer_mode", mAudioManager.getRingerMode());
+            trainingServiceIntent.putExtra("day_of_week", now.get(Calendar.DAY_OF_WEEK));
+            trainingServiceIntent.putExtra("am_pm", now.get(Calendar.AM_PM));
+            trainingServiceIntent.putExtra("hour_of_day", now.get(Calendar.HOUR_OF_DAY));
+            startService(trainingServiceIntent);
+/*
+            mSample = new Sample(
                     getApplicationContext(),
-                    mostProbableActivity.getType(),
-                    mAudioManager.getRingerMode() ,
+
+                    mAudioManager.getRingerMode(),
                     now.get(Calendar.DAY_OF_WEEK),
                     now.get(Calendar.AM_PM),
-                    (int)now.get(Calendar.HOUR)
-            );
-
-//            newSample.save();
+                    now.get(Calendar.HOUR_OF_DAY)
+            );*/
 
             Log.d(TAG, "Action: " + action + ", Confidence: " + confidence + ", Ringer Mode: " + ringerMode);
             Log.d(TAG, "Time: " + DateHelper.getFuzzyTime(now.get(Calendar.AM_PM)) + ", Hour: " + now.get(Calendar.HOUR)+ ", Day of Week: "+ DateHelper.getDayOfWeek(now.get(Calendar.DAY_OF_WEEK)));

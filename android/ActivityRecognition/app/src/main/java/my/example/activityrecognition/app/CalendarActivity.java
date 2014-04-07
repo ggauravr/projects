@@ -27,11 +27,13 @@ import java.util.List;
 
 public class CalendarActivity extends BaseUserActivity {
 
-    public static String[] 
+    public static String[]
         content = new String[Constants.N_GRIDS],
         days = new String[] {" ", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
     
-    public static boolean[] 
+    public static boolean[]
+        // selected : holds the saved calendar
+        // tempSelcted : holds the temporary changes to the calendar
         selected = new boolean[Constants.N_GRIDS],
         tempSelected = new boolean[Constants.N_GRIDS];
     
@@ -73,10 +75,10 @@ public class CalendarActivity extends BaseUserActivity {
         System.arraycopy(selected, 0, tempSelected, 0, selected.length);
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-    }
+    /**
+     * Overridden methods below..
+     * 
+     */
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,7 +125,7 @@ public class CalendarActivity extends BaseUserActivity {
                     mActionBar.show();
                 }
 
-                // do nothing for first row and first column
+                // do nothing for first row and first column, which is the margin
                 if(position%8 == 0 || position/8 == 0){
                     return;
                 }
@@ -176,21 +178,23 @@ public class CalendarActivity extends BaseUserActivity {
 
     }
 
-    private void startCollectorActivity(){
-        Intent intent = new Intent(this, CollectorActivity.class);
-        startActivity(intent);
-        finish();
-    }
-
     @Override
     public void onSupportActionModeFinished(android.support.v7.view.ActionMode mode) {
         Toast.makeText(this, "ActionMode Finished !", Toast.LENGTH_SHORT).show();
         super.onSupportActionModeFinished(mode);
     }
-    
+
     /**
-     * [saveCalendar description]
+     * Custom Methods defined below.. 
+     *
+     * 
      */
+    private void startCollectorActivity(){
+        Intent intent = new Intent(this, CollectorActivity.class);
+        startActivity(intent);
+        finish();
+    }
+    
     public void saveCalendar(){
         System.arraycopy(tempSelected, 0, selected, 0, tempSelected.length);
         mHelperInstance.saveToPreferences("schedule", selected);

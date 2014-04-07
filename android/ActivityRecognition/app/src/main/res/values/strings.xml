@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <string name="hello_world">Hello World !</string>
+
     <string name="app_name">Activity Recognition</string>
-    <string name="hello_world">Hello world!</string>
+    <string name="txt_information">Toggle data collection here !</string>
+
+    <string name="txt_service_btn_default">Start Data Collection</string>
+    <string name="txt_service_start_btn">Start Data Collection</string>
+    <string name="txt_service_stop_btn">Stop Data Collection</string>
+
+    <string name="txt_service_running">Service is currently collecting data</string>
+    <string name="txt_service_not_running">Service is not collecting data</string>
+
     <string name="action_settings">Settings</string>
     <string name="action_commit">Save</string>
     <string name="action_ignore">Ignore</string>

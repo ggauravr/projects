@@ -11,12 +11,27 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.text.TextUtils;
 import android.util.Log;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.VolleyLog;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesClient;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.location.ActivityRecognitionClient;
+
+import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by ggauravr on 2/28/14.
@@ -27,13 +42,15 @@ public class BackgroundService extends Service
 {
 
     private final String TAG = getClass().getSimpleName();
+    private final int SAMPLE_FREQUENCY = 10000;
+
     private BroadcastReceiver mBroadcastReceiver;
     private ActivityRecognitionClient mARClient;
     private PendingIntent mPendingIntent;
     private Handler mServiceHandler;
     private Looper mServiceLooper;
     private boolean mCmd;
-
+//    private static BackgroundService selfReference = null;
     // private DBHelper mDBHelper;
 
     private final class ServiceHandler extends Handler {
@@ -105,7 +122,7 @@ public class BackgroundService extends Service
         if(mARClient!=null){
             stopActivityUpdates();
         }
-        
+
         mServiceLooper.quit();
         super.onDestroy();
     }
@@ -121,7 +138,7 @@ public class BackgroundService extends Service
 
     @Override
     public void onConnected(Bundle bundle) {
-        mARClient.requestActivityUpdates(10000, mPendingIntent);
+        mARClient.requestActivityUpdates(SAMPLE_FREQUENCY, mPendingIntent);
 
         if(mCmd){
             stopSelf();
@@ -143,4 +160,6 @@ public class BackgroundService extends Service
         mARClient.removeActivityUpdates(mPendingIntent);
         mARClient.disconnect();
     }
+
+
 }

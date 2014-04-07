@@ -9,29 +9,30 @@
     tools:context="my.example.testbackgroundservice2.app.MainActivity$PlaceholderFragment">
 
     <TextView
-        android:text="@string/hello_world"
+        android:text="@string/txt_information"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/textView" />
+        android:id="@+id/txt_information"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Service Status"
+        android:id="@+id/txt_service_status"
+        android:layout_below="@+id/txt_information"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="40dp" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Start Services"
-        android:id="@+id/btn_start"
-        android:layout_below="@+id/textView"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:layout_marginTop="38dp" />
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Stop Services"
-        android:id="@+id/btn_stop"
-        android:layout_alignTop="@+id/btn_start"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true" />
+        android:id="@+id/btn_service"
+        android:layout_marginTop="42dp"
+        android:layout_below="@+id/txt_service_status"
+        android:layout_centerHorizontal="true"
+        android:text="@string/txt_service_btn_default" />
 
 
 </RelativeLayout>

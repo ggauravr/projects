@@ -11,16 +11,22 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class CollectorActivity extends BaseUserActivity {
 
     private final String TAG = getClass().getSimpleName();
 
-    private Button 
-        mBtnStartService, 
-        mBtnStopService;
-    
+    private Button mBtnService;
+    private TextView mTxtServiceStatus;
+
+    private static final int
+            TXT_SERVICE_STOP_BTN = R.string.txt_service_stop_btn,
+            TXT_SERVICE_START_BTN = R.string.txt_service_start_btn,
+            TXT_SERVICE_RUNNING = R.string.txt_service_running,
+            TXT_SERVICE_NOT_RUNNING = R.string.txt_service_not_running;
+
     private Context mContext;
 
     @Override
@@ -30,17 +36,25 @@ public class CollectorActivity extends BaseUserActivity {
 
         mHelperInstance = HelperClass.getInstance();
 
-        mBtnStartService = (Button) findViewById(R.id.btn_start);
-        mBtnStopService = (Button) findViewById(R.id.btn_stop);
+        mBtnService = (Button) findViewById(R.id.btn_service);
+        mTxtServiceStatus = (TextView) findViewById(R.id.txt_service_status);
+
         mContext = this;
 
         registerEventCallbacks();
 
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+       setMessages();
+    }
+
     public void registerEventCallbacks() {
 
-        mBtnStartService.setOnClickListener(new View.OnClickListener() {
+        mBtnService.setOnClickListener(new View.OnClickListener() {
             /**
              * if service already running
              *     return silently
@@ -53,36 +67,30 @@ public class CollectorActivity extends BaseUserActivity {
             public void onClick(View view) {
 
                 if (mHelperInstance.getServiceStatus()) {
-                    showToast("Service already running !");
-                    return;
+                    stopActivityUpdates(!mHelperInstance.getServiceStatus());
+                    Toast.makeText(mContext, "Service killed. Stopping data collection.", Toast.LENGTH_SHORT).show();
+                }
+                else{
+                    startActivityUpdates();
+                    Toast.makeText(mContext, "Service started. Starting data collection.", Toast.LENGTH_SHORT).show();
                 }
 
-                startActivityUpdates();
+                setMessages();
+
             }
         });
 
-        mBtnStopService.setOnClickListener(new View.OnClickListener() {
-            /**
-             * if service not running,
-             *     return silently
-             * else
-             *     set the status to false and stop the service
-             * 
-             * @param view [description]
-             */
-            @Override
-            public void onClick(View view) {
+    }
 
-               /* if (!mHelperInstance.getServiceStatus()) {
-                    showToast("Activity not running !");
-                    return;
-                }*/
-
-                // fase - don't create a new service
-                stopActivityUpdates(!mHelperInstance.getServiceStatus());
-            }
-        });
-
+    public void setMessages(){
+        if (mHelperInstance.getServiceStatus()) {
+            mTxtServiceStatus.setText(TXT_SERVICE_RUNNING);
+            mBtnService.setText(TXT_SERVICE_STOP_BTN);
+        }
+        else{
+            mTxtServiceStatus.setText(TXT_SERVICE_NOT_RUNNING);
+            mBtnService.setText(TXT_SERVICE_START_BTN);
+        }
     }
 
     public void showToast(String msg) {

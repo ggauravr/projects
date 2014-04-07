@@ -13,4 +13,7 @@ public class Constants {
         N_ROWS = 64,
         N_COLS = 8,
         N_GRIDS = N_ROWS * N_COLS;
+
+    // TO DO : add names of services and activities with namespace here.. 
+    // for reference in other places
 }

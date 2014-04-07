@@ -89,17 +89,14 @@ public class HelperClass {
 
         while (i.hasNext()) {
             ActivityManager.RunningServiceInfo runningServiceInfo = (ActivityManager.RunningServiceInfo) i.next();
-            Log.d("HelperClass", "Class Name is : " + runningServiceInfo.service.getClassName());
             if(runningServiceInfo.service.getClassName().equals(serviceName)){
                 serviceRunning = true;
             }
         }
-        Log.d("HelperClass", "getServiceStatus : " + serviceRunning);
         return serviceRunning;
     }
 
     public void setServiceStatus(boolean status){
-        Log.d("HelperClass", "Setting Service Status to.. " + status);
         instance.saveToPreferences( "is_service_running", status);
     }
 
