@@ -25,7 +25,9 @@ public class Sample extends SugarRecord<Sample> implements Serializable {
             mOriginalLabel;
 
     private long mTimestamp;
-
+    private String 
+        mModel,
+        mGradient;
 
     public Sample(Context ctx) {
         super(ctx);
@@ -67,6 +69,14 @@ public class Sample extends SugarRecord<Sample> implements Serializable {
         );
 
         return vector;
+    }
+
+    public void setGradient(String gradient){
+        mGradient = gradient;
+    }
+
+    public void setModel(String model){
+        mModel = model;
     }
 
     public void setOriginalLabel(int label) {

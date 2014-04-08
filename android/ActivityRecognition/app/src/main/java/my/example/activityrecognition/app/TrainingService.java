@@ -20,6 +20,7 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -30,18 +31,20 @@ import org.la4j.vector.dense.BasicVector;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class TrainingService extends Service {
 
-    private static final String 
-        TAG = "TrainingService",
-        API_URL = "http://www.ml-training.appspot.com/test";
-        // API_URL = "http://127.0.0.1:8080/test"
+    private static final String
+            TAG = "TrainingService",
+            API_URL = "http://www.ml-training.appspot.com/test";
+    // API_URL = "http://127.0.0.1:8080/test"
 
-    private static final int 
-        TYPE_SAMPLE = 1, 
-        TYPE_MODEL = 2;
+    private static final int
+            TYPE_SAMPLE = 1,
+            TYPE_MODEL = 2;
 
     private static final double LAMBDA = 0.0001;
 
@@ -52,10 +55,6 @@ public class TrainingService extends Service {
     private Vector
             mModelVector = new BasicVector(new double[]{0, 0, 0, 0, 0}),
             mGradient = new BasicVector(new double[]{0, 0, 0, 0, 0});
-
-    public TrainingService() {
-
-    }
 
     @Override
     public void onCreate() {
@@ -150,10 +149,8 @@ public class TrainingService extends Service {
              *
              * updateGradient() and updateModel() called in handleResponse
              */
-            fetchModel();
-//            saveModel();
-
-            syncEntries();
+            fetchRemoteModel();
+            // syncEntries();
         }
         else{
             /**
@@ -161,7 +158,8 @@ public class TrainingService extends Service {
              *
              */
 
-            updateModel();
+            fetchLocalModel();
+            processModel();
         }
 
         if (isConnectedToNetwork()) {
@@ -170,10 +168,8 @@ public class TrainingService extends Service {
              * sync data with the server
              *
              */
-        } else {
-            /**
-             * store the computations in DB
-             */
+            syncSamples();
+
         }
     }
 
@@ -196,10 +192,11 @@ public class TrainingService extends Service {
                 factor = -((double) mSample.getOriginalLabel() - probability) * probability * (1 - probability);
 
         mGradient = x.multiply(factor);
-
+        saveGradient();
     }
 
     public void saveGradient(){
+        mSample.setGradient(mHelperInstance.getGson().toJson((new BasicVector(mGradient)).toArray()));
         mHelperInstance.saveToPreferences("gradient", (new BasicVector(mGradient)).toArray());
     }
 
@@ -212,26 +209,77 @@ public class TrainingService extends Service {
     }
 
     public void saveModel() {
+        mSample.setModel(mHelperInstance.getGson().toJson((new BasicVector(mModelVector)).toArray()));
         mHelperInstance.saveToPreferences("model", (new BasicVector(mModelVector)).toArray());
     }
 
-    public void fetchModel() {
-        String stringModel = HelperClass.getInstance().getFromPreferences("model", "");
+    public void fetchRemoteModel() {
         /**
          * TO DO: fetch params from network
          *
          *  fetch model params from network
          *
          */
-        fetchDataFromServer();
+        JsonObjectRequest jsonGETRequest;
 
+        Response.Listener<JSONObject> responseListener = new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                try {
+                    JSONArray jsonArray = response.getJSONArray("model");
+                    double[] modelArray = mHelperInstance.getGson().fromJson(jsonArray.toString(), double[].class);
+                    Log.d(TAG, " modelArray is " + Arrays.toString(modelArray));
+                    mModelVector = new BasicVector(modelArray);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                processModel();
+            }
+        };
+
+        Response.ErrorListener errorListener = new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                fetchLocalModel();
+                processModel();
+            }
+        };
+
+        jsonGETRequest = new JsonObjectRequest(API_URL, null, responseListener, errorListener);
+
+        addRequestToQueue(jsonGETRequest, "");
+    }
+
+    public void fetchLocalModel(){
+        String stringModel = HelperClass.getInstance().getFromPreferences("model", "");
         // if some preferences are stored, restore it
         if (stringModel != "") {
             mModelVector = new BasicVector(mHelperInstance.getGson().fromJson(stringModel, double[].class));
         }
+        else{
+            mModelVector = new BasicVector(new double[] {0, 0, 0, 0, 0});
+        }
     }
 
-    public void syncEntries() {
+    public void processModel(){
+        // store the fetched model as the latest
+        saveModel();
+        // update the model, after updating gradient
+        // updates and saves gradient, computes new model and calls saveModel() again
+        updateModel();
+        predict();
+    }
+
+    public void syncSamples() {
+        /**
+         *  send an array of sample over to the server
+         */
+        List<Sample> samples = Sample.findWithQuery(Sample.class, "Select * from Sample");
+        for(Iterator<Sample> iter = samples.iterator(); iter.hasNext(); ){
+            mSample = iter.next();
+
+            sendDataToServer();
+        }
 
     }
 
@@ -277,39 +325,22 @@ public class TrainingService extends Service {
 
     }
 
-    public void fetchDataFromServer(){
-        JsonObjectRequest jsonGETRequest;
-
-        Response.Listener<JSONObject> responseListener = new Response.Listener<JSONObject>() {
-            @Override
-            public void onResponse(JSONObject response) {
-                handleDataFromServer(response);
-            }
-        };
-
-        Response.ErrorListener errorListener = new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                handleError(error);
-            }
-        };
-
-        jsonGETRequest = new JsonObjectRequest(API_URL, null, responseListener, errorListener);
-
-        addRequestToQueue(jsonGETRequest, "");
-
-    }
-
     public void sendDataToServer(){
         JsonObjectRequest jsonPUTRequest;
-        StringRequest stringPUTRequest = new StringRequest(Request.Method.POST,API_URL, new Response.Listener<String>() {
+        StringRequest stringPUTRequest = new JsonObjectRequest()(Request.Method.POST,API_URL, new Response.Listener<String>() {
             @Override
-            public void onResponse(String response) {
-                handleDataFromServer(response);
+            public void onResponse(JSONObject response) {
+
+                handlePOSTResponse(response);
+
+                // stop the service..
+                Log.d(TAG, "Killing Self.. Training Service");
+                stopSelf();
             }
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
+                Log.d(TAG, "POSTing failed.. ");
                 handleError(error);
             }
         }) {
@@ -318,8 +349,10 @@ public class TrainingService extends Service {
                 Map<String,String> params = new HashMap<String, String>();
                 Gson gson = mHelperInstance.getGson();
                 params.put("sample", gson.toJson((new BasicVector(mSample.getSampleVector())).toArray()));
+                /*
                 params.put("model", gson.toJson((new BasicVector(mModelVector)).toArray()));
                 params.put("gradient", gson.toJson((new BasicVector(mGradient)).toArray()));
+                */
 
                 return params;
             }
@@ -337,28 +370,23 @@ public class TrainingService extends Service {
 
     }
 
-    public void handleDataFromServer(String response){
+    public void handlePOSTResponse(JSONObject response){
         /** response from POST request */
         Log.d(TAG, "POST response .. " + response);
-    }
 
-    public void handleDataFromServer(JSONObject response){
-        /** response from GET request */
-        Log.d(TAG, "GET Response .. " + response.toString());
-        try {
-            JSONArray jsonArray = response.getJSONArray("model");
-            double[] modelArray = mHelperInstance.getGson().fromJson(jsonArray.toString(), double[].class);
-            Log.d(TAG, " modelArray is " + Arrays.toString(modelArray));
-            mModelVector = new BasicVector(modelArray);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        saveModel();
-        /* update done after the model is fetched from server */
-        updateModel();
-        predict();
+        /**
+         *
+         *  TO DO : delete the sample from DB here , whose id is ACKed from the server
+         *
+         */
+         /**
+          * response format: { cmd : "delete" , "value" : <int id> }
+          *
+          * get the id and delete it
+          *
+          * */
 
-        sendDataToServer();
+
     }
 
     public void handleError(VolleyError error){

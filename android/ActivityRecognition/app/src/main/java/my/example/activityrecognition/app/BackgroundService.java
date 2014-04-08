@@ -49,9 +49,11 @@ public class BackgroundService extends Service
     private PendingIntent mPendingIntent;
     private Handler mServiceHandler;
     private Looper mServiceLooper;
+    private HelperClass mHelperInstance;
     private boolean mCmd;
-//    private static BackgroundService selfReference = null;
-    // private DBHelper mDBHelper;
+
+    // if sSelf is null, the background service isn't running
+    private static BackgroundService sSelf = null;
 
     private final class ServiceHandler extends Handler {
         public ServiceHandler(Looper looper) {
@@ -64,6 +66,10 @@ public class BackgroundService extends Service
         }
     }
 
+    public static BackgroundService getInstance(){
+        return sSelf;
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -73,6 +79,10 @@ public class BackgroundService extends Service
 
         mServiceLooper = thread.getLooper();
         mServiceHandler = new ServiceHandler(mServiceLooper);
+
+        mHelperInstance = HelperClass.getInstance(getApplicationContext());
+        sSelf = this;
+        mHelperInstance.saveToPreferences("is_service_running", true);
 
         // connectToDB();
         connectToClient();
@@ -84,7 +94,7 @@ public class BackgroundService extends Service
         mCmd = intent.getBooleanExtra("stop_activity_updates", false);
         Log.d(TAG, "Command : " + String.valueOf(mCmd));
 
-        return START_NOT_STICKY;
+        return START_REDELIVER_INTENT;
     }
 
     /*public void connectToDB(){
@@ -123,6 +133,8 @@ public class BackgroundService extends Service
             stopActivityUpdates();
         }
 
+        sSelf = null;
+        mHelperInstance.saveToPreferences("is_service_running", false);
         mServiceLooper.quit();
         super.onDestroy();
     }

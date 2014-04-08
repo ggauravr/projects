@@ -68,14 +68,14 @@ public class CollectorActivity extends BaseUserActivity {
 
                 if (mHelperInstance.getServiceStatus()) {
                     stopActivityUpdates(!mHelperInstance.getServiceStatus());
+                    setMessages(false);
                     Toast.makeText(mContext, "Service killed. Stopping data collection.", Toast.LENGTH_SHORT).show();
                 }
                 else{
                     startActivityUpdates();
+                    setMessages(true);
                     Toast.makeText(mContext, "Service started. Starting data collection.", Toast.LENGTH_SHORT).show();
                 }
-
-                setMessages();
 
             }
         });
@@ -83,7 +83,11 @@ public class CollectorActivity extends BaseUserActivity {
     }
 
     public void setMessages(){
-        if (mHelperInstance.getServiceStatus()) {
+        setMessages(mHelperInstance.getServiceStatus());
+    }
+
+    public void setMessages(boolean status){
+        if (status) {
             mTxtServiceStatus.setText(TXT_SERVICE_RUNNING);
             mBtnService.setText(TXT_SERVICE_STOP_BTN);
         }

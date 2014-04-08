@@ -45,9 +45,9 @@ public class BaseUserActivity extends ActionBarActivity {
         else{
             stopService(intent);
         }
-        
+
         // also set serviceRunning status to false
-        updateServiceStatus(false);
+//        updateServiceStatus(false);
     }
 
     public void updateServiceStatus(boolean status){
