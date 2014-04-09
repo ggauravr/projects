@@ -27,6 +27,8 @@ import java.util.List;
 
 public class CalendarActivity extends BaseUserActivity {
 
+    private final String TAG = getClass().getSimpleName();
+
     public static String[]
         content = new String[Constants.N_GRIDS],
         days = new String[] {" ", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
@@ -40,7 +42,7 @@ public class CalendarActivity extends BaseUserActivity {
     private ActionBar mActionBar;
     private GridView mGrid, mHeaderGrid;
 
-    // inherited attributes : mIsServiceRunning and mHelperInstance
+    // inherited attributes : mHelperInstance
     // defined in BaseUserActivity
 
     /**
@@ -91,7 +93,7 @@ public class CalendarActivity extends BaseUserActivity {
         mHelperInstance = HelperClass.getInstance();
 
         // restore calendar preferences
-        schedule = mHelperInstance.getFromPreferences("schedule", "");
+        schedule = mHelperInstance.getFromPreferences(R.string.key_schedule, "");
 
         // if some preferences are stored, restore it
         if(schedule != ""){
@@ -186,7 +188,6 @@ public class CalendarActivity extends BaseUserActivity {
 
     /**
      * Custom Methods defined below.. 
-     *
      * 
      */
     private void startCollectorActivity(){
@@ -197,16 +198,16 @@ public class CalendarActivity extends BaseUserActivity {
     
     public void saveCalendar(){
         System.arraycopy(tempSelected, 0, selected, 0, tempSelected.length);
-        mHelperInstance.saveToPreferences("schedule", selected);
+        mHelperInstance.saveToPreferences(R.string.key_schedule, selected);
 
-        Toast.makeText(this, "Calendar successfully saved ", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.msg_calendar_save, Toast.LENGTH_SHORT).show();
     }
 
     public void resetCalendar(){
         System.arraycopy(selected, 0, tempSelected, 0, selected.length);
         mGrid.invalidateViews();
 
-        Toast.makeText(this, "Changed ignored !", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.msg_calendar_reset, Toast.LENGTH_SHORT).show();
     }
 
     public void clearCalendar(){
@@ -215,7 +216,7 @@ public class CalendarActivity extends BaseUserActivity {
         
         mGrid.invalidateViews();
 
-        Toast.makeText(this, "Cleared Calendar !", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.msg_calendar_clear, Toast.LENGTH_SHORT).show();
     }
 
 }

@@ -123,7 +123,7 @@ public class TrainingService extends Service {
         row = (minute / 30) == 0 ? row : row + 1;
         col = mSample.getDayOfWeek();
         position = row * Constants.N_COLS + col;
-        stringSchedule = mHelperInstance.getFromPreferences("schedule", "");
+        stringSchedule = mHelperInstance.getFromPreferences(R.string.key_schedule, "");
 
         if(stringSchedule == ""){
             Log.d(TAG, "schedule string is empty.. returning");
@@ -197,12 +197,11 @@ public class TrainingService extends Service {
 
     public void saveGradient(){
         mSample.setGradient(mHelperInstance.getGson().toJson((new BasicVector(mGradient)).toArray()));
-        mHelperInstance.saveToPreferences("gradient", (new BasicVector(mGradient)).toArray());
+        mHelperInstance.saveToPreferences(R.string.key_latest_gradient, (new BasicVector(mGradient)).toArray());
     }
 
     public void updateModel() {
         updateGradient();
-        Log.d(TAG, "Update Model called .. ");
         mModelVector = mModelVector.subtract(mGradient.multiply(LAMBDA));
 
         saveModel();
@@ -210,7 +209,7 @@ public class TrainingService extends Service {
 
     public void saveModel() {
         mSample.setModel(mHelperInstance.getGson().toJson((new BasicVector(mModelVector)).toArray()));
-        mHelperInstance.saveToPreferences("model", (new BasicVector(mModelVector)).toArray());
+        mHelperInstance.saveToPreferences(R.string.key_latest_model, (new BasicVector(mModelVector)).toArray());
     }
 
     public void fetchRemoteModel() {
@@ -228,7 +227,7 @@ public class TrainingService extends Service {
                 try {
                     JSONArray jsonArray = response.getJSONArray("model");
                     double[] modelArray = mHelperInstance.getGson().fromJson(jsonArray.toString(), double[].class);
-                    Log.d(TAG, " modelArray is " + Arrays.toString(modelArray));
+                    Log.i(TAG, " modelArray is " + Arrays.toString(modelArray));
                     mModelVector = new BasicVector(modelArray);
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -251,7 +250,7 @@ public class TrainingService extends Service {
     }
 
     public void fetchLocalModel(){
-        String stringModel = HelperClass.getInstance().getFromPreferences("model", "");
+        String stringModel = HelperClass.getInstance().getFromPreferences(R.string.key_latest_model, "");
         // if some preferences are stored, restore it
         if (stringModel != "") {
             mModelVector = new BasicVector(mHelperInstance.getGson().fromJson(stringModel, double[].class));
@@ -268,16 +267,18 @@ public class TrainingService extends Service {
         // updates and saves gradient, computes new model and calls saveModel() again
         updateModel();
         predict();
+
+        mSample.save();
     }
 
     public void syncSamples() {
         /**
          *  send an array of sample over to the server
          */
-        List<Sample> samples = Sample.findWithQuery(Sample.class, "Select * from Sample");
+        List<Sample> samples = Sample.findWithQuery(Sample.class, "Select * from Sample ORDER BY id");
         for(Iterator<Sample> iter = samples.iterator(); iter.hasNext(); ){
             mSample = iter.next();
-
+            Log.d(TAG, "Sample in iteration : " + mSample.getId());
             sendDataToServer();
         }
 
@@ -289,11 +290,11 @@ public class TrainingService extends Service {
         double probability = 1 / (1 + Math.exp(-wx));
         int label = 0;
 
-        Log.d(TAG, " Probability.. " + probability);
+        Log.i(TAG, " Probability.. " + probability);
         if(probability > 0.5){
             label = 1;
         }
-        Log.d(TAG, "Probability .. " + probability + ", Predicted Class : " + label + ", Original Class : " + mSample.getOriginalLabel());
+        Log.i(TAG, "Probability .. " + probability + ", Predicted Class : " + label + ", Original Class : " + mSample.getOriginalLabel());
         mSample.setPredictedLabel(label);
     }
 
@@ -327,20 +328,19 @@ public class TrainingService extends Service {
 
     public void sendDataToServer(){
         JsonObjectRequest jsonPUTRequest;
-        StringRequest stringPUTRequest = new JsonObjectRequest()(Request.Method.POST,API_URL, new Response.Listener<String>() {
+        StringRequest stringPUTRequest = new StringRequest(Request.Method.POST,API_URL, new Response.Listener<String>() {
             @Override
-            public void onResponse(JSONObject response) {
+            public void onResponse(String response) {
 
                 handlePOSTResponse(response);
 
                 // stop the service..
-                Log.d(TAG, "Killing Self.. Training Service");
                 stopSelf();
             }
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Log.d(TAG, "POSTing failed.. ");
+                Log.e(TAG, "POSTing failed.. ");
                 handleError(error);
             }
         }) {
@@ -348,11 +348,7 @@ public class TrainingService extends Service {
             protected Map<String,String> getParams(){
                 Map<String,String> params = new HashMap<String, String>();
                 Gson gson = mHelperInstance.getGson();
-                params.put("sample", gson.toJson((new BasicVector(mSample.getSampleVector())).toArray()));
-                /*
-                params.put("model", gson.toJson((new BasicVector(mModelVector)).toArray()));
-                params.put("gradient", gson.toJson((new BasicVector(mGradient)).toArray()));
-                */
+                params.put("sample", mSample.getCommObject());
 
                 return params;
             }
@@ -365,27 +361,32 @@ public class TrainingService extends Service {
             }
         };
 
-        Log.d(TAG, "Making post request..");
+        Log.i(TAG, "Making post request..");
         addRequestToQueue(stringPUTRequest, "");
 
     }
 
-    public void handlePOSTResponse(JSONObject response){
+    public void handlePOSTResponse(String response){
+        JSONObject jsonResponse = null;
+
         /** response from POST request */
-        Log.d(TAG, "POST response .. " + response);
+        Log.i(TAG, "POST response .. " + response);
+        try {
+            jsonResponse = new JSONObject(response);
+            long id = jsonResponse.getInt("value");
+            Sample toDelete = Sample.findById(Sample.class, id);
 
-        /**
-         *
-         *  TO DO : delete the sample from DB here , whose id is ACKed from the server
-         *
-         */
-         /**
-          * response format: { cmd : "delete" , "value" : <int id> }
-          *
-          * get the id and delete it
-          *
-          * */
+            Log.i(TAG, "id from server.. " + jsonResponse.getInt("value"));
 
+            if(toDelete != null){
+                toDelete.delete();
+            }else{
+                Log.d(TAG, "toDelete is null");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
 

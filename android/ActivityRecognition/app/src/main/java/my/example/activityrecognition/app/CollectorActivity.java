@@ -1,10 +1,13 @@
 package my.example.activityrecognition.app;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -20,12 +23,7 @@ public class CollectorActivity extends BaseUserActivity {
 
     private Button mBtnService;
     private TextView mTxtServiceStatus;
-
-    private static final int
-            TXT_SERVICE_STOP_BTN = R.string.txt_service_stop_btn,
-            TXT_SERVICE_START_BTN = R.string.txt_service_start_btn,
-            TXT_SERVICE_RUNNING = R.string.txt_service_running,
-            TXT_SERVICE_NOT_RUNNING = R.string.txt_service_not_running;
+    private TextView mTxtSampleDetails;
 
     private Context mContext;
 
@@ -38,6 +36,7 @@ public class CollectorActivity extends BaseUserActivity {
 
         mBtnService = (Button) findViewById(R.id.btn_service);
         mTxtServiceStatus = (TextView) findViewById(R.id.txt_service_status);
+        mTxtSampleDetails = (TextView) findViewById(R.id.txt_sample);
 
         mContext = this;
 
@@ -54,6 +53,8 @@ public class CollectorActivity extends BaseUserActivity {
 
     public void registerEventCallbacks() {
 
+        LocalBroadcastManager.getInstance(mContext).registerReceiver(activityBroadcastReceiver, new IntentFilter(getString(R.string.msg_activity_broadcast)));
+
         mBtnService.setOnClickListener(new View.OnClickListener() {
             /**
              * if service already running
@@ -69,12 +70,12 @@ public class CollectorActivity extends BaseUserActivity {
                 if (mHelperInstance.getServiceStatus()) {
                     stopActivityUpdates(!mHelperInstance.getServiceStatus());
                     setMessages(false);
-                    Toast.makeText(mContext, "Service killed. Stopping data collection.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mContext, R.string.msg_service_kill, Toast.LENGTH_SHORT).show();
                 }
                 else{
                     startActivityUpdates();
                     setMessages(true);
-                    Toast.makeText(mContext, "Service started. Starting data collection.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mContext, R.string.msg_service_start, Toast.LENGTH_SHORT).show();
                 }
 
             }
@@ -82,23 +83,43 @@ public class CollectorActivity extends BaseUserActivity {
 
     }
 
+    private BroadcastReceiver activityBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String
+                    action = intent.getStringExtra("activity"),
+                    ringerMode = intent.getStringExtra("ringer_mode"),
+                    dayOfWeek = intent.getStringExtra("day_of_week"),
+                    fuzzyTime = intent.getStringExtra("am_pm");
+            int hourOfDay = intent.getIntExtra("hour_of_day", 0);
+            int confidence = intent.getIntExtra("confidence", 0);
+
+            /**
+             * update the UI with the sample details..
+             *
+             * */
+            String msg = "Action : " + action + "\n" +
+                    "Confidence : " + confidence + "\n" +
+                    "Ringer Mode : " + ringerMode + "\n" +
+                    "Day/Hour : " + dayOfWeek + ", " + hourOfDay + " " + fuzzyTime;
+
+            mTxtSampleDetails.setText(msg);
+         }
+    };
+
     public void setMessages(){
         setMessages(mHelperInstance.getServiceStatus());
     }
 
     public void setMessages(boolean status){
         if (status) {
-            mTxtServiceStatus.setText(TXT_SERVICE_RUNNING);
-            mBtnService.setText(TXT_SERVICE_STOP_BTN);
+            mTxtServiceStatus.setText(R.string.txt_service_running);
+            mBtnService.setText(R.string.txt_service_btn_stop);
         }
         else{
-            mTxtServiceStatus.setText(TXT_SERVICE_NOT_RUNNING);
-            mBtnService.setText(TXT_SERVICE_START_BTN);
+            mTxtServiceStatus.setText(R.string.txt_service_not_running);
+            mBtnService.setText(R.string.txt_service_btn_start);
         }
-    }
-
-    public void showToast(String msg) {
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
 
     @Override

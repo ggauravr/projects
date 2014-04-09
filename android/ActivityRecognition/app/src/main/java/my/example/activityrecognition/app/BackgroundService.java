@@ -42,9 +42,7 @@ public class BackgroundService extends Service
 {
 
     private final String TAG = getClass().getSimpleName();
-    private final int SAMPLE_FREQUENCY = 30000;
 
-    private BroadcastReceiver mBroadcastReceiver;
     private ActivityRecognitionClient mARClient;
     private PendingIntent mPendingIntent;
     private Handler mServiceHandler;
@@ -62,7 +60,7 @@ public class BackgroundService extends Service
 
         @Override
         public void handleMessage(Message msg) {
-            Log.d(TAG, "message : " + msg.toString());
+            // Log.d(TAG, "message : " + msg.toString());
         }
     }
 
@@ -82,9 +80,8 @@ public class BackgroundService extends Service
 
         mHelperInstance = HelperClass.getInstance(getApplicationContext());
         sSelf = this;
-        mHelperInstance.saveToPreferences("is_service_running", true);
-
-        // connectToDB();
+        mHelperInstance.saveToPreferences(R.string.key_service_status, true);
+        
         connectToClient();
      }
 
@@ -92,27 +89,13 @@ public class BackgroundService extends Service
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         mCmd = intent.getBooleanExtra("stop_activity_updates", false);
-        Log.d(TAG, "Command : " + String.valueOf(mCmd));
 
         return START_REDELIVER_INTENT;
     }
 
-    /*public void connectToDB(){
-        mDBHelper = new DBHelper(this);
-
-        SQLiteDatabase db = mDBHelper.getWritableDatabase();
-
-        mDBHelper.fillActivityTable(db);
-        mDBHelper.fillPlaceTable(db);
-
-        mDBHelper.close();
-     }*/
-
     public void connectToClient(){
         int response = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
         Intent intent = new Intent(this, HandlerService.class);
-
-        // Log.d(TAG, "connecting to google play services.. + response : " + response + ":: " + ConnectionResult.SUCCESS);
 
         if (response == ConnectionResult.SUCCESS) {
             mARClient = new ActivityRecognitionClient(this, this, this);
@@ -134,7 +117,7 @@ public class BackgroundService extends Service
         }
 
         sSelf = null;
-        mHelperInstance.saveToPreferences("is_service_running", false);
+        mHelperInstance.saveToPreferences(R.string.key_service_status, false);
         mServiceLooper.quit();
         super.onDestroy();
     }
@@ -150,7 +133,7 @@ public class BackgroundService extends Service
 
     @Override
     public void onConnected(Bundle bundle) {
-        mARClient.requestActivityUpdates(SAMPLE_FREQUENCY, mPendingIntent);
+        mARClient.requestActivityUpdates(Constants.SAMPLE_FREQUENCY, mPendingIntent);
 
         if(mCmd){
             stopSelf();

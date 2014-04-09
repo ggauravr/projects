@@ -1,24 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <string name="hello_world">Hello World !</string>
-
     <string name="app_name">Activity Recognition</string>
+    <string name="hello_world">Hello World !</string>
+    
+    <!-- toast messages in calendar activity -->
+    <string name="msg_calendar_save">Calendar saved. Hit \'Done\' to start data collection</string>
+    <string name="msg_calendar_reset">Changes ignored</string>
+    <string name="msg_calendar_clear">Calendar cleared</string>
+    
+    <!-- text in collector activity -->
     <string name="txt_information">Toggle data collection here !</string>
-
     <string name="txt_service_btn_default">Start Data Collection</string>
-    <string name="txt_service_start_btn">Start Data Collection</string>
-    <string name="txt_service_stop_btn">Stop Data Collection</string>
-
+    <string name="txt_service_btn_start">Start Data Collection</string>
+    <string name="txt_service_btn_stop">Stop Data Collection</string>
     <string name="txt_service_running">Service is currently collecting data</string>
     <string name="txt_service_not_running">Service is not collecting data</string>
 
+    <string name="msg_service_kill">Service killed. Stopping data collection.</string>
+    <string name="msg_service_start">Service started. Starting data collection.</string>
+    
+    <!-- action bar options/items -->
     <string name="action_settings">Settings</string>
     <string name="action_commit">Save</string>
     <string name="action_ignore">Ignore</string>
     <string name="action_done">Done</string>
     <string name="action_clear">Clear</string>
     <string name="action_reschedule">Reschedule</string>
+    
+    <!-- keys used in shared preferences -->
+    <string name="key_service_status">is_service_running</string>    
+    <string name="key_schedule">schedule</string>
+    <string name="key_latest_model">model</string>
+    <string name="key_latest_gradient">gradient</string>
+
+    <!-- broadcast messages -->
+    <string name="msg_activity_broadcast">activity_broadcast</string>
+
     <string name="title_activity_base_user">BaseUserActivity</string>
 
 </resources>

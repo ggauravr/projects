@@ -12,7 +12,9 @@ public class Constants {
         INIT_HR = 0,
         N_ROWS = 64,
         N_COLS = 8,
-        N_GRIDS = N_ROWS * N_COLS;
+        N_GRIDS = N_ROWS * N_COLS,
+
+        SAMPLE_FREQUENCY = 20000;
 
     // TO DO : add names of services and activities with namespace here.. 
     // for reference in other places

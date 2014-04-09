@@ -4,6 +4,8 @@ import android.content.Context;
 
 import com.orm.SugarRecord;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.la4j.vector.Vector;
 import org.la4j.vector.dense.BasicVector;
 
@@ -69,6 +71,32 @@ public class Sample extends SugarRecord<Sample> implements Serializable {
         );
 
         return vector;
+    }
+
+    public String getCommObject(){
+        JSONObject commObject = new JSONObject();
+        Vector sampleVector = new BasicVector(
+                new double[]{
+                        // id is an extra parameter sent to the server
+                        id,
+                        mActivity,
+                        mRingerMode,
+                        mDayOfWeek,
+                        mApproxTime,
+                        mHour
+                }
+        );
+        String sample = HelperClass.getInstance().getGson().toJson(((BasicVector)sampleVector).toArray());
+
+        try {
+            commObject.put("sample", sample);
+            commObject.put("model", mModel);
+            commObject.put("gradient", mGradient);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return commObject.toString();
     }
 
     public void setGradient(String gradient){

@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -35,11 +36,10 @@ import java.util.Map;
 public class HandlerService extends IntentService {
 
     private final String TAG = getClass().getSimpleName();
+
     private AudioManager mAudioManager;
     private Context mContext;
-
     private Intent mNetworkHandlerIntent;
-    private Sample mSample;
 
     public HandlerService(){
         super("HandlerService");
@@ -62,39 +62,53 @@ public class HandlerService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        mAudioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-        Calendar now = Calendar.getInstance();
-
         if(ActivityRecognitionResult.hasResult(intent)){
+            mAudioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+            startTrainingService(intent);
+         }
+    }
 
-            ActivityRecognitionResult result = ActivityRecognitionResult.extractResult(intent);
-            DetectedActivity mostProbableActivity = result.getMostProbableActivity();
-            int confidence = mostProbableActivity.getConfidence();
-            String 
+    public void startTrainingService(Intent intent){
+        ActivityRecognitionResult result = ActivityRecognitionResult.extractResult(intent);
+        Calendar now = Calendar.getInstance();
+        DetectedActivity mostProbableActivity = result.getMostProbableActivity();
+        int confidence = mostProbableActivity.getConfidence();
+        String
                 action = getType(mostProbableActivity.getType()),
                 ringerMode = getRingerModeAsString(mAudioManager.getRingerMode());
 
-            Intent trainingServiceIntent = new Intent(mContext, TrainingService.class);
-            trainingServiceIntent.putExtra("activity_type",mostProbableActivity.getType() );
-            trainingServiceIntent.putExtra("ringer_mode", mAudioManager.getRingerMode());
-            trainingServiceIntent.putExtra("day_of_week", now.get(Calendar.DAY_OF_WEEK));
-            trainingServiceIntent.putExtra("am_pm", now.get(Calendar.AM_PM));
-            trainingServiceIntent.putExtra("hour_of_day", now.get(Calendar.HOUR_OF_DAY));
-            startService(trainingServiceIntent);
-/*
-            mSample = new Sample(
-                    getApplicationContext(),
+        Intent trainingServiceIntent = new Intent(mContext, TrainingService.class);
 
-                    mAudioManager.getRingerMode(),
-                    now.get(Calendar.DAY_OF_WEEK),
-                    now.get(Calendar.AM_PM),
-                    now.get(Calendar.HOUR_OF_DAY)
-            );*/
+        trainingServiceIntent.putExtra("activity_type",mostProbableActivity.getType() );
+        trainingServiceIntent.putExtra("ringer_mode", mAudioManager.getRingerMode());
+        trainingServiceIntent.putExtra("day_of_week", now.get(Calendar.DAY_OF_WEEK));
+        trainingServiceIntent.putExtra("am_pm", now.get(Calendar.AM_PM));
+        trainingServiceIntent.putExtra("hour_of_day", now.get(Calendar.HOUR_OF_DAY));
 
-            Log.d(TAG, "Action: " + action + ", Confidence: " + confidence + ", Ringer Mode: " + ringerMode);
-            Log.d(TAG, "Time: " + DateHelper.getFuzzyTime(now.get(Calendar.AM_PM)) + ", Hour: " + now.get(Calendar.HOUR)+ ", Day of Week: "+ DateHelper.getDayOfWeek(now.get(Calendar.DAY_OF_WEEK)));
+        startService(trainingServiceIntent);
 
-         }
+        /**
+         * send a local broadcast to display the sample details, if collector activity is active
+         *
+         * */
+        sendActivityBroadcast(action, confidence, ringerMode, now);
+
+        Log.d(TAG, "Action: " + action + ", Confidence: " + confidence + ", Ringer Mode: " + ringerMode);
+        Log.d(TAG, "Time: " + DateHelper.getFuzzyTime(now.get(Calendar.AM_PM)) + ", Hour: " + now.get(Calendar.HOUR)+ ", Day of Week: "+ DateHelper.getDayOfWeek(now.get(Calendar.DAY_OF_WEEK)));
+
+    }
+
+    private void sendActivityBroadcast(String action, int confidence, String ringerMode, Calendar now){
+        Intent intent = new Intent(getString(R.string.msg_activity_broadcast));
+
+        intent.putExtra("activity", action);
+        intent.putExtra("confidence", confidence);
+        intent.putExtra("ringer_mode", ringerMode);
+        intent.putExtra("day_of_week", DateHelper.getDayOfWeek(now.get(Calendar.DAY_OF_WEEK)));
+        intent.putExtra("am_pm", DateHelper.getFuzzyTime(now.get(Calendar.AM_PM)));
+        intent.putExtra("hour_of_day", now.get(Calendar.HOUR_OF_DAY));
+
+        LocalBroadcastManager.getInstance(mContext).sendBroadcast(intent);
     }
 
     private String getRingerModeAsString(int ringerMode){

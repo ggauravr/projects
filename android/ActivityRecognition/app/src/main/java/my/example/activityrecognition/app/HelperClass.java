@@ -49,15 +49,15 @@ public class HelperClass {
         return instance;
     }
 
-    public void saveToPreferences(String key, Object value){
+    public void saveToPreferences(int keyID, Object value){
         SharedPreferences.Editor editor = mPreference.edit();
 
-        editor.putString(key, getGson().toJson(value));
+        editor.putString(mContext.getString(keyID), getGson().toJson(value));
         editor.apply();
     }
 
-    public String getFromPreferences(String key, String defaultValue){
-        return mPreference.getString(key, defaultValue);
+    public String getFromPreferences(int keyID, String defaultValue){
+        return mPreference.getString(mContext.getString(keyID), defaultValue);
     }
 
     public Gson getGson(){
@@ -67,15 +67,6 @@ public class HelperClass {
 
         return mGson;
     }
-
-    /*public boolean getServiceStatus() {
-
-        String stringStatus = instance.getFromPreferences( "is_service_running", "false");
-        Log.d("HelperClass", "Getting Service Status.. " + stringStatus);
-
-        return Boolean.parseBoolean(stringStatus);
-
-    }*/
 
     public boolean getServiceStatus(){
         return getServiceStatus(BG_SERVICE_NAME);
@@ -104,7 +95,7 @@ public class HelperClass {
     }
 
     public void setServiceStatus(boolean status){
-        instance.saveToPreferences( "is_service_running", status);
+        instance.saveToPreferences(R.string.key_service_status, status);
     }
 
 }

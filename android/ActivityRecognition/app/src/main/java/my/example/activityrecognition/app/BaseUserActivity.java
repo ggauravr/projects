@@ -11,9 +11,8 @@ import android.widget.Toast;
 
 public class BaseUserActivity extends ActionBarActivity {
 
-    private static final String TAG = "BaseUserActivity";
+    private final String TAG = getClass().getSimpleName();
 
-    protected boolean mIsServiceRunning = false;
     protected HelperClass mHelperInstance;
 
     @Override
@@ -28,8 +27,6 @@ public class BaseUserActivity extends ActionBarActivity {
         Intent intent = new Intent(getApplicationContext(), BackgroundService.class);
         // without "stop_activity_updates" command, the service doesn't stop'
         startService(intent);
-        // also set serviceRunning status to true
-       updateServiceStatus(true);
     }
 
     public void stopActivityUpdates(boolean createNew){
@@ -45,14 +42,6 @@ public class BaseUserActivity extends ActionBarActivity {
         else{
             stopService(intent);
         }
-
-        // also set serviceRunning status to false
-//        updateServiceStatus(false);
-    }
-
-    public void updateServiceStatus(boolean status){
-        mIsServiceRunning = status;
-        mHelperInstance.setServiceStatus(status);
     }
 
     public void showToast(String tag, String msg){
