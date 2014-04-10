@@ -74,6 +74,7 @@ public class Sample extends SugarRecord<Sample> implements Serializable {
     }
 
     public String getCommObject(){
+
         JSONObject commObject = new JSONObject();
         Vector sampleVector = new BasicVector(
                 new double[]{
@@ -83,20 +84,30 @@ public class Sample extends SugarRecord<Sample> implements Serializable {
                         mRingerMode,
                         mDayOfWeek,
                         mApproxTime,
-                        mHour
+                        mHour,
+                        mPredictedLabel,
+                        mOriginalLabel
                 }
         );
         String sample = HelperClass.getInstance().getGson().toJson(((BasicVector)sampleVector).toArray());
 
         try {
             commObject.put("sample", sample);
-            commObject.put("model", mModel);
-            commObject.put("gradient", mGradient);
+            /*commObject.put("model", mModel);
+            commObject.put("gradient", mGradient);*/
+            /*commObject.put("model", getStringFromVector(model));
+            commObject.put("gradient", getStringFromVector(gradient));*/
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
-        return commObject.toString();
+        return sample;
+
+//        return commObject.toString();
+    }
+
+    public String getStringFromVector(Vector vector){
+        return HelperClass.getInstance().getGson().toJson((new BasicVector(vector)).toArray());
     }
 
     public void setGradient(String gradient){

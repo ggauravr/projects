@@ -14,7 +14,7 @@ public class Constants {
         N_COLS = 8,
         N_GRIDS = N_ROWS * N_COLS,
 
-        SAMPLE_FREQUENCY = 20000;
+        SAMPLE_FREQUENCY = 60000;
 
     // TO DO : add names of services and activities with namespace here.. 
     // for reference in other places

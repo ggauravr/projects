@@ -28,6 +28,7 @@ import org.json.JSONObject;
 import org.la4j.vector.Vector;
 import org.la4j.vector.dense.BasicVector;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -39,14 +40,14 @@ public class TrainingService extends Service {
 
     private static final String
             TAG = "TrainingService",
-            API_URL = "http://www.ml-training.appspot.com/test";
+            API_URL = "http://www.ml-training-backup.appspot.com/activity_api";
     // API_URL = "http://127.0.0.1:8080/test"
 
     private static final int
             TYPE_SAMPLE = 1,
             TYPE_MODEL = 2;
 
-    private static final double LAMBDA = 0.0001;
+    private static final double LAMBDA = 0.001;
 
     private RequestQueue mRequestQueue;
     private Sample mSample;
@@ -55,6 +56,7 @@ public class TrainingService extends Service {
     private Vector
             mModelVector = new BasicVector(new double[]{0, 0, 0, 0, 0}),
             mGradient = new BasicVector(new double[]{0, 0, 0, 0, 0});
+    private List<String> mSamples = new ArrayList<String>();
 
     @Override
     public void onCreate() {
@@ -161,16 +163,6 @@ public class TrainingService extends Service {
             fetchLocalModel();
             processModel();
         }
-
-        if (isConnectedToNetwork()) {
-            /**
-             * sync any remaining DB entries, before updating the current one
-             * sync data with the server
-             *
-             */
-            syncSamples();
-
-        }
     }
 
     public boolean isConnectedToNetwork() {
@@ -196,20 +188,30 @@ public class TrainingService extends Service {
     }
 
     public void saveGradient(){
-        mSample.setGradient(mHelperInstance.getGson().toJson((new BasicVector(mGradient)).toArray()));
-        mHelperInstance.saveToPreferences(R.string.key_latest_gradient, (new BasicVector(mGradient)).toArray());
+        mSample.setGradient(getVectorAsString(mGradient));
+        mHelperInstance.saveToPreferences(R.string.key_latest_gradient,getVectorAsArray(mGradient));
     }
 
     public void updateModel() {
         updateGradient();
         mModelVector = mModelVector.subtract(mGradient.multiply(LAMBDA));
-
+        Log.d(TAG, "Updated Gradient" + getVectorAsString(mGradient));
+        Log.d(TAG, "Updated Model " + getVectorAsString(mModelVector));
         saveModel();
     }
 
     public void saveModel() {
-        mSample.setModel(mHelperInstance.getGson().toJson((new BasicVector(mModelVector)).toArray()));
-        mHelperInstance.saveToPreferences(R.string.key_latest_model, (new BasicVector(mModelVector)).toArray());
+        mSample.setModel(getVectorAsString(mModelVector));
+        mHelperInstance.saveToPreferences(R.string.key_latest_model,getVectorAsArray(mModelVector) );
+        Log.d(TAG, "Saved Model " + getVectorAsString(mModelVector));
+    }
+
+    public double[] getVectorAsArray(Vector vector){
+        return (new BasicVector(vector)).toArray();
+    }
+
+    public String getVectorAsString(Vector vector){
+        return mHelperInstance.getGson().toJson(getVectorAsArray(vector));
     }
 
     public void fetchRemoteModel() {
@@ -219,17 +221,16 @@ public class TrainingService extends Service {
          *  fetch model params from network
          *
          */
-        JsonObjectRequest jsonGETRequest;
+        StringRequest stringGETRequest;
 
-        Response.Listener<JSONObject> responseListener = new Response.Listener<JSONObject>() {
+        Response.Listener<String> responseListener = new Response.Listener<String>() {
             @Override
-            public void onResponse(JSONObject response) {
+            public void onResponse(String response) {
                 try {
-                    JSONArray jsonArray = response.getJSONArray("model");
-                    double[] modelArray = mHelperInstance.getGson().fromJson(jsonArray.toString(), double[].class);
+                    double[] modelArray = mHelperInstance.getGson().fromJson(response, double[].class);
                     Log.i(TAG, " modelArray is " + Arrays.toString(modelArray));
                     mModelVector = new BasicVector(modelArray);
-                } catch (JSONException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
                 processModel();
@@ -244,9 +245,9 @@ public class TrainingService extends Service {
             }
         };
 
-        jsonGETRequest = new JsonObjectRequest(API_URL, null, responseListener, errorListener);
+        stringGETRequest = new StringRequest(Request.Method.GET, API_URL, responseListener, errorListener);
 
-        addRequestToQueue(jsonGETRequest, "");
+        addRequestToQueue(stringGETRequest, "");
     }
 
     public void fetchLocalModel(){
@@ -269,18 +270,34 @@ public class TrainingService extends Service {
         predict();
 
         mSample.save();
+
+        if (isConnectedToNetwork()) {
+            /**
+             * sync any remaining DB entries, before updating the current one
+             * sync data with the server
+             *
+             */
+            syncSamples();
+
+        }
     }
 
     public void syncSamples() {
+        sendModelToServer();
         /**
          *  send an array of sample over to the server
          */
         List<Sample> samples = Sample.findWithQuery(Sample.class, "Select * from Sample ORDER BY id");
+        mSamples.clear();
+
         for(Iterator<Sample> iter = samples.iterator(); iter.hasNext(); ){
             mSample = iter.next();
-            Log.d(TAG, "Sample in iteration : " + mSample.getId());
-            sendDataToServer();
+            mSamples.add(mSample.getCommObject());
+
         }
+//        Log.d(TAG, "Sending samples : " + samplesString);
+//        mSamples = samplesString;
+        sendDataToServer();
 
     }
 
@@ -327,20 +344,17 @@ public class TrainingService extends Service {
     }
 
     public void sendDataToServer(){
-        JsonObjectRequest jsonPUTRequest;
         StringRequest stringPUTRequest = new StringRequest(Request.Method.POST,API_URL, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
 
+                mSamples.clear();
                 handlePOSTResponse(response);
-
-                // stop the service..
-                stopSelf();
             }
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Log.e(TAG, "POSTing failed.. ");
+                Log.e(TAG, "POSTing samples failed.. ");
                 handleError(error);
             }
         }) {
@@ -348,7 +362,50 @@ public class TrainingService extends Service {
             protected Map<String,String> getParams(){
                 Map<String,String> params = new HashMap<String, String>();
                 Gson gson = mHelperInstance.getGson();
-                params.put("sample", mSample.getCommObject());
+
+                Log.d(TAG, "Sending Samples : " +  "[" + TextUtils.join(", ", mSamples) + "]");
+                params.put("sample", "[" + TextUtils.join(", ", mSamples) + "]");
+
+                return params;
+            }
+
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                Map<String,String> params = new HashMap<String, String>();
+                params.put("Content-Type","application/x-www-form-urlencoded");
+                return params;
+            }
+        };
+
+        Log.i(TAG, "Making post request..");
+        addRequestToQueue(stringPUTRequest, "");
+
+    }
+
+    public void sendModelToServer(){
+
+       StringRequest stringPUTRequest = new StringRequest(Request.Method.POST,API_URL, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+
+                handlePOSTResponse(response);
+
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e(TAG, "POSTing model failed.. ");
+                handleError(error);
+            }
+        }) {
+            @Override
+            protected Map<String,String> getParams(){
+                Map<String,String> params = new HashMap<String, String>();
+                Gson gson = mHelperInstance.getGson();
+                String stringModel = mHelperInstance.getFromPreferences(R.string.key_latest_model, "");
+
+                Log.d(TAG, "Model sent : " + stringModel);
+                params.put("model", stringModel);
 
                 return params;
             }
@@ -373,15 +430,30 @@ public class TrainingService extends Service {
         Log.i(TAG, "POST response .. " + response);
         try {
             jsonResponse = new JSONObject(response);
-            long id = jsonResponse.getInt("value");
-            Sample toDelete = Sample.findById(Sample.class, id);
 
-            Log.i(TAG, "id from server.. " + jsonResponse.getInt("value"));
+            String cmd = jsonResponse.getString("cmd");
 
-            if(toDelete != null){
-                toDelete.delete();
-            }else{
-                Log.d(TAG, "toDelete is null");
+            if(cmd.equalsIgnoreCase("delete")){
+                // int[] ids = mHelperInstance.getGson().fromJson(jsonResponse.getString("value"), int[].class);
+                /*String ids = jsonResponse.getString("value");
+                List<Sample> samplesToDelete = Sample.findWithQuery(Sample.class, "Select * from Sample where id in " + ids);
+
+                Log.i(TAG, "id from server.. " + jsonResponse.getInt("value"));*/
+
+                /*Sample sample;
+                if(samplesToDelete.size() != 0){
+                    for(Iterator<Sample> iter = samplesToDelete.iterator(); iter.hasNext(); ){
+                        sample = iter.next();
+                        Log.d(TAG, "Deleting sample .. " + sample.getId());
+                        sample.delete();
+                    }
+                }else{
+                    Log.d(TAG, "toDelete is null");
+                }*/
+                Sample.deleteAll(Sample.class);
+
+                // stop the service..
+                stopSelf();
             }
 
         } catch (Exception e) {
