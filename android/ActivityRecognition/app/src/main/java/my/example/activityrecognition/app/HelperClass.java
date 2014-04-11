@@ -73,9 +73,9 @@ public class HelperClass {
     }
 
     private boolean getServiceStatus(String serviceName){
-       /* boolean serviceRunning = false;
+        boolean serviceRunning = false;
         ActivityManager am = (ActivityManager) mContext.getSystemService("activity");
-        List<ActivityManager.RunningServiceInfo> l = am.getRunningServices(50);
+        List<ActivityManager.RunningServiceInfo> l = am.getRunningServices(60);
         Iterator<ActivityManager.RunningServiceInfo> i = l.iterator();
 
         while (i.hasNext()) {
@@ -84,14 +84,14 @@ public class HelperClass {
                 serviceRunning = true;
             }
         }
-        return serviceRunning;*/
+        return serviceRunning;
 
-        BackgroundService bgServiceInstance = BackgroundService.getInstance();
-        boolean status = bgServiceInstance != null;
+        /*BackgroundService bgServiceInstance = BackgroundService.getInstance();
+        boolean status = bgServiceInstance != null && !Boolean.parseBoolean(getFromPreferences(R.string.key_service_status, "false"));
 
         Log.d("HelperClass", "Background Service Status .. " + String.valueOf(status));
 
-        return status;
+        return status;*/
     }
 
     public void setServiceStatus(boolean status){

@@ -33,13 +33,16 @@ public class BaseUserActivity extends ActionBarActivity {
         Log.d(TAG, "Stopping Activity Updates.. Setting Status to false");
         Intent intent = new Intent(getApplicationContext(), BackgroundService.class);
 
+
         if(createNew){
+            Log.d(TAG, "Creating new BG process to stop it.. ");
             intent.putExtra("stop_activity_updates", true);
             // this isn't stopService() call,, it's the start service call, with stop command in the intent
             // because background service takes care of stop the activity updates, can't be done here
             startService(intent);    
         }
         else{
+            Log.d(TAG, "Calling stop service.. bg service ");
             stopService(intent);
         }
     }

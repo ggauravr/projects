@@ -32,6 +32,8 @@
     <string name="key_schedule">schedule</string>
     <string name="key_latest_model">model</string>
     <string name="key_latest_gradient">gradient</string>
+    <string name="key_sample">sample</string>
+    <string name="key_activity_count">activity_count</string>
 
     <!-- broadcast messages -->
     <string name="msg_activity_broadcast">activity_broadcast</string>

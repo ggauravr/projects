@@ -91,6 +91,11 @@ public class CalendarActivity extends BaseUserActivity {
         String schedule;
 
         mHelperInstance = HelperClass.getInstance();
+        Gson gson = mHelperInstance.getGson();
+
+        double[] a = new double[0];
+//        a[4] = 5.0;
+        Log.d(TAG, "Gson behavior : " + gson.toJson(gson.fromJson("[]", double[].class)));
 
         // restore calendar preferences
         schedule = mHelperInstance.getFromPreferences(R.string.key_schedule, "");

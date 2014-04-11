@@ -50,6 +50,8 @@ public class BackgroundService extends Service
     private HelperClass mHelperInstance;
     private boolean mCmd;
 
+    private boolean mIsConnected = false;
+
     // if sSelf is null, the background service isn't running
     private static BackgroundService sSelf = null;
 
@@ -75,6 +77,7 @@ public class BackgroundService extends Service
         HandlerThread thread = new HandlerThread("BackgroundService");
         thread.start();
 
+        mIsConnected = false;
         mServiceLooper = thread.getLooper();
         mServiceHandler = new ServiceHandler(mServiceLooper);
 
@@ -89,6 +92,10 @@ public class BackgroundService extends Service
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         mCmd = intent.getBooleanExtra("stop_activity_updates", false);
+
+        if(mIsConnected){
+            stopSelf();
+        }
 
         return START_REDELIVER_INTENT;
     }
@@ -112,14 +119,19 @@ public class BackgroundService extends Service
     @Override
     public void onDestroy() {
 
-        if(mARClient!=null){
+        if(mARClient != null){
             stopActivityUpdates();
         }
+
+        Intent intent = new Intent(getApplicationContext(), TrainingService.class);
+        Log.d(TAG, "Stopping training service");
+        stopService(intent);
 
         sSelf = null;
         mHelperInstance.saveToPreferences(R.string.key_service_status, false);
         mServiceLooper.quit();
         super.onDestroy();
+
     }
 
     @Override
@@ -133,8 +145,9 @@ public class BackgroundService extends Service
 
     @Override
     public void onConnected(Bundle bundle) {
+        mIsConnected = true;
         mARClient.requestActivityUpdates(Constants.SAMPLE_FREQUENCY, mPendingIntent);
-
+        Log.d(TAG, "Connected to Play Services .. ");
         if(mCmd){
             stopSelf();
         }

@@ -16,14 +16,10 @@ import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.VolleyLog;
-import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.la4j.vector.Vector;
 import org.la4j.vector.dense.BasicVector;
@@ -54,14 +50,13 @@ public class TrainingService extends Service {
     private Gson mGson = null;
     private HelperClass mHelperInstance;
     private Vector
-            mModelVector = new BasicVector(new double[]{0, 0, 0, 0, 0}),
-            mGradient = new BasicVector(new double[]{0, 0, 0, 0, 0});
+            mModelVector = new BasicVector(new double[Constants.N_DIMENSIONS]),
+            mGradient = new BasicVector(new double[Constants.N_DIMENSIONS]);
     private List<String> mSamples = new ArrayList<String>();
 
     @Override
     public void onCreate() {
         super.onCreate();
-
         /**
          *  create a request queue for http using Volley
          *
@@ -75,7 +70,7 @@ public class TrainingService extends Service {
         Bundle extras = intent.getExtras();
 
         mSample = new Sample(
-                getApplicationContext(),
+//                getApplicationContext(),
                 extras.getInt("activity_type"),
                 extras.getInt("ringer_mode"),
                 extras.getInt("day_of_week"),
@@ -84,11 +79,50 @@ public class TrainingService extends Service {
         );
         mHelperInstance = HelperClass.getInstance();
 
-        getOriginalLabel();
+        if(getActivityCount() == 0){
+            clearStoredSample();
+        }
 
-        handle();
+        getOriginalLabelForUserActivity();
+        updateSample();
+
+        if (getActivityCount() == 5) {
+            setOriginalLabel();
+            handle();
+        }
+
 
         return START_NOT_STICKY;
+    }
+
+    public int getActivityCount(){
+        int count = Integer.parseInt(mHelperInstance.getFromPreferences(R.string.key_activity_count, "0"));
+        return count;
+    }
+
+    public void updateActivityCount(){
+        int count = Integer.parseInt(mHelperInstance.getFromPreferences(R.string.key_activity_count, "0"));
+
+        if(count == 5){
+            count = 0;
+        }
+
+        count += 1;
+        mHelperInstance.saveToPreferences(R.string.key_activity_count, count);
+    }
+
+    public void clearStoredSample(){
+        mHelperInstance.saveToPreferences(R.string.key_sample, new double[0]);
+    }
+
+    public void addSample() {
+        double[] sampleArray = getStoredSample();
+        ExpandedSample expandedSample = new ExpandedSample(getApplicationContext(), sampleArray);
+
+        expandedSample.save();
+        Log.d(TAG, "Sample saved in DB: " + expandedSample.getId());
+//        double[] a = new double[0];
+        mHelperInstance.saveToPreferences(R.string.key_sample, new double[0]);
     }
 
     @Override
@@ -108,9 +142,71 @@ public class TrainingService extends Service {
 
     /**
      * Training and Sample processing functions
-     *
-     * */
-    public void getOriginalLabel(){
+     */
+    public void updateSample() {
+        double[] sampleArray = getStoredSample();
+
+        Vector
+                currentSample = mSample.getSampleVector();
+
+        Vector storedSample = new BasicVector(sampleArray),
+                updatedSample = currentSample.add(storedSample);
+
+        mHelperInstance.saveToPreferences(R.string.key_sample, ((BasicVector) updatedSample).toArray());
+        Log.d(TAG, "Current sample : " + Arrays.toString( ((BasicVector) currentSample).toArray() ));
+        Log.d(TAG, "Saved Sample : " + mHelperInstance.getFromPreferences(R.string.key_sample, "[]"));
+
+        updateActivityCount();
+        
+    }
+
+    public void setOriginalLabel() {
+        String storedSampleString = mHelperInstance.getFromPreferences(R.string.key_sample, "[]");
+        double[] sampleArray = mHelperInstance.getGson().fromJson(storedSampleString, double[].class);
+        int length = sampleArray.length;
+
+        // original label is at last but one position
+        Log.d(TAG, "Original Label " + sampleArray[length-1]);
+        if (sampleArray[length - 1] >= 3) {
+//            if majority, then in class
+            sampleArray[length - 1] = 1;
+            // add the sample to DB.. and delete from preferences
+            mHelperInstance.saveToPreferences(R.string.key_sample, sampleArray);
+        }
+    }
+
+    public int getOriginalLabel(){
+        double[] sampleArray = getStoredSample();
+        int length = sampleArray.length;
+
+        return (int) sampleArray[length-1];
+    }
+
+    public double[] getStoredSample(){
+        String storedSampleString = mHelperInstance.getFromPreferences(R.string.key_sample, "[]");
+        double[] sampleArray = mHelperInstance.getGson().fromJson(storedSampleString, double[].class);
+
+        if(sampleArray.length == 0){
+            sampleArray = new double[Constants.N_DIMENSIONS+2];
+        }
+
+        return sampleArray;
+    }
+
+    public Vector getSampleForProcessing(){
+        double[] sampleArray = getStoredSample();
+        double[] sampleForProcessing = new double[Constants.N_DIMENSIONS];
+
+        System.arraycopy(sampleArray, 0, sampleForProcessing, 0, sampleForProcessing.length);
+
+        return new BasicVector(sampleForProcessing);
+    }
+
+    public void saveSample(){
+
+    }
+
+    public void getOriginalLabelForUserActivity() {
         int hour, minute, row, col, position, label = 0;
         String stringSchedule;
         boolean[] schedule = new boolean[Constants.N_GRIDS];
@@ -123,11 +219,11 @@ public class TrainingService extends Service {
         // calculate position of the current hour and min in the schedule saved
         row = Math.abs(Constants.INIT_HR - hour) * 2 + 1;
         row = (minute / 30) == 0 ? row : row + 1;
-        col = mSample.getDayOfWeek();
+        col = mSample.getOriginalDayOfWeek();
         position = row * Constants.N_COLS + col;
         stringSchedule = mHelperInstance.getFromPreferences(R.string.key_schedule, "");
 
-        if(stringSchedule == ""){
+        if (stringSchedule == "") {
             Log.d(TAG, "schedule string is empty.. returning");
             return;
         }
@@ -153,8 +249,7 @@ public class TrainingService extends Service {
              */
             fetchRemoteModel();
             // syncEntries();
-        }
-        else{
+        } else {
             /**
              * compute the gradient, and train the model
              *
@@ -177,23 +272,26 @@ public class TrainingService extends Service {
     }
 
     public void updateGradient() {
-        Vector x = mSample.getSampleVector();
+        Vector x = getSampleForProcessing();
         double
                 wx = x.innerProduct(mModelVector),
                 probability = 1 / (1 + Math.exp(-wx)),
-                factor = -((double) mSample.getOriginalLabel() - probability) * probability * (1 - probability);
+                factor = -((double) getOriginalLabel() - probability) * probability * (1 - probability);
 
         mGradient = x.multiply(factor);
+        Log.d(TAG, "Computed Gradient : " + getVectorAsString(mGradient));
         saveGradient();
     }
 
-    public void saveGradient(){
-        mSample.setGradient(getVectorAsString(mGradient));
-        mHelperInstance.saveToPreferences(R.string.key_latest_gradient,getVectorAsArray(mGradient));
+    public void saveGradient() {
+        Log.d(TAG, "Saving Gradient : " + getVectorAsString(mGradient));
+        mHelperInstance.saveToPreferences(R.string.key_latest_gradient, getVectorAsArray(mGradient));
     }
 
     public void updateModel() {
         updateGradient();
+        // lambda/t - t is the number of samples processed
+        // OR lambda/root t
         mModelVector = mModelVector.subtract(mGradient.multiply(LAMBDA));
         Log.d(TAG, "Updated Gradient" + getVectorAsString(mGradient));
         Log.d(TAG, "Updated Model " + getVectorAsString(mModelVector));
@@ -202,15 +300,15 @@ public class TrainingService extends Service {
 
     public void saveModel() {
         mSample.setModel(getVectorAsString(mModelVector));
-        mHelperInstance.saveToPreferences(R.string.key_latest_model,getVectorAsArray(mModelVector) );
+        mHelperInstance.saveToPreferences(R.string.key_latest_model, getVectorAsArray(mModelVector));
         Log.d(TAG, "Saved Model " + getVectorAsString(mModelVector));
     }
 
-    public double[] getVectorAsArray(Vector vector){
+    public double[] getVectorAsArray(Vector vector) {
         return (new BasicVector(vector)).toArray();
     }
 
-    public String getVectorAsString(Vector vector){
+    public String getVectorAsString(Vector vector) {
         return mHelperInstance.getGson().toJson(getVectorAsArray(vector));
     }
 
@@ -226,9 +324,10 @@ public class TrainingService extends Service {
         Response.Listener<String> responseListener = new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
+                Log.d(TAG, "model received from server : " + response);
+
                 try {
                     double[] modelArray = mHelperInstance.getGson().fromJson(response, double[].class);
-                    Log.i(TAG, " modelArray is " + Arrays.toString(modelArray));
                     mModelVector = new BasicVector(modelArray);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -250,26 +349,26 @@ public class TrainingService extends Service {
         addRequestToQueue(stringGETRequest, "");
     }
 
-    public void fetchLocalModel(){
+    public void fetchLocalModel() {
         String stringModel = HelperClass.getInstance().getFromPreferences(R.string.key_latest_model, "");
         // if some preferences are stored, restore it
         if (stringModel != "") {
             mModelVector = new BasicVector(mHelperInstance.getGson().fromJson(stringModel, double[].class));
-        }
-        else{
-            mModelVector = new BasicVector(new double[] {0, 0, 0, 0, 0});
+        } else {
+            mModelVector = new BasicVector(new double[Constants.N_DIMENSIONS]);
         }
     }
 
-    public void processModel(){
+    public void processModel() {
         // store the fetched model as the latest
         saveModel();
         // update the model, after updating gradient
         // updates and saves gradient, computes new model and calls saveModel() again
-        updateModel();
+        // TO DO : do this before update
         predict();
+        updateModel();
 
-        mSample.save();
+        addSample();
 
         if (isConnectedToNetwork()) {
             /**
@@ -287,46 +386,62 @@ public class TrainingService extends Service {
         /**
          *  send an array of sample over to the server
          */
-        List<Sample> samples = Sample.findWithQuery(Sample.class, "Select * from Sample ORDER BY id");
+        // send the device id
+        // email and the timestamp .. 
+        List<ExpandedSample> samples = ExpandedSample.findWithQuery(ExpandedSample.class, "Select * from Expanded_Sample ORDER BY id");
+        ExpandedSample sample;
+
         mSamples.clear();
 
-        for(Iterator<Sample> iter = samples.iterator(); iter.hasNext(); ){
-            mSample = iter.next();
-            mSamples.add(mSample.getCommObject());
+        for (Iterator<ExpandedSample> iter = samples.iterator(); iter.hasNext(); ) {
+            sample = iter.next();
+            mSamples.add(sample.getSampleArray());
 
         }
-//        Log.d(TAG, "Sending samples : " + samplesString);
+        Log.d(TAG, "Sending samples : " + mSamples);
 //        mSamples = samplesString;
         sendDataToServer();
 
     }
 
-    public void predict(){
-        Vector x = mSample.getSampleVector();
+    public void predict() {
+        String storedSampleString = mHelperInstance.getFromPreferences(R.string.key_sample, "[]");
+        double[] storedSample = mHelperInstance.getGson().fromJson(storedSampleString, double[].class);
+        int lengthOfStoredSample = storedSample.length;
+        double[] sampleForProcessing = new double[lengthOfStoredSample - 2]; // ignore the two labels
+        Vector x = new BasicVector(sampleForProcessing);
+
         double wx = x.innerProduct(mModelVector);
         double probability = 1 / (1 + Math.exp(-wx));
         int label = 0;
 
         Log.i(TAG, " Probability.. " + probability);
-        if(probability > 0.5){
+        if (probability > 0.5) {
             label = 1;
         }
-        Log.i(TAG, "Probability .. " + probability + ", Predicted Class : " + label + ", Original Class : " + mSample.getOriginalLabel());
-        mSample.setPredictedLabel(label);
+//        Log.i(TAG, "Probability .. " + probability + ", Predicted Class : " + label + ", Original Class : " + mSample.getOriginalLabel());
+        setPredictedLabel(label);
+    }
+
+    public void setPredictedLabel(int label) {
+        double[] sampleArray = getStoredSample();
+
+        sampleArray[Constants.N_DIMENSIONS] = label;
+        mHelperInstance.saveToPreferences(R.string.key_sample, sampleArray);
     }
 
     /**
-     *  Volley functions
+     * Volley functions
      */
-    public RequestQueue getRequestQueue(){
-        if(mRequestQueue == null){
+    public RequestQueue getRequestQueue() {
+        if (mRequestQueue == null) {
             mRequestQueue = Volley.newRequestQueue(getApplicationContext());
         }
 
         return mRequestQueue;
     }
 
-    public <T> void addRequestToQueue(Request<T> request, String tag){
+    public <T> void addRequestToQueue(Request<T> request, String tag) {
         request.setTag(TextUtils.isEmpty(tag) ? TAG : tag);
 
         VolleyLog.d("Adding request to Queue.. %s\n", request.getUrl());
@@ -336,15 +451,15 @@ public class TrainingService extends Service {
         getRequestQueue().add(request);
     }
 
-    public void cancelPendingRequests(Object tag){
-        if(mRequestQueue != null){
+    public void cancelPendingRequests(Object tag) {
+        if (mRequestQueue != null) {
             mRequestQueue.cancelAll(tag);
         }
 
     }
 
-    public void sendDataToServer(){
-        StringRequest stringPUTRequest = new StringRequest(Request.Method.POST,API_URL, new Response.Listener<String>() {
+    public void sendDataToServer() {
+        StringRequest stringPUTRequest = new StringRequest(Request.Method.POST, API_URL, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
 
@@ -359,11 +474,11 @@ public class TrainingService extends Service {
             }
         }) {
             @Override
-            protected Map<String,String> getParams(){
-                Map<String,String> params = new HashMap<String, String>();
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<String, String>();
                 Gson gson = mHelperInstance.getGson();
 
-                Log.d(TAG, "Sending Samples : " +  "[" + TextUtils.join(", ", mSamples) + "]");
+//                Log.d(TAG, "Sending Samples : " + "[" + TextUtils.join(", ", mSamples) + "]");
                 params.put("sample", "[" + TextUtils.join(", ", mSamples) + "]");
 
                 return params;
@@ -371,20 +486,20 @@ public class TrainingService extends Service {
 
             @Override
             public Map<String, String> getHeaders() throws AuthFailureError {
-                Map<String,String> params = new HashMap<String, String>();
-                params.put("Content-Type","application/x-www-form-urlencoded");
+                Map<String, String> params = new HashMap<String, String>();
+                params.put("Content-Type", "application/x-www-form-urlencoded");
                 return params;
             }
         };
 
-        Log.i(TAG, "Making post request..");
+        Log.i(TAG, "Making data post request..");
         addRequestToQueue(stringPUTRequest, "");
 
     }
 
-    public void sendModelToServer(){
+    public void sendModelToServer() {
 
-       StringRequest stringPUTRequest = new StringRequest(Request.Method.POST,API_URL, new Response.Listener<String>() {
+        StringRequest stringPUTRequest = new StringRequest(Request.Method.POST, API_URL, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
 
@@ -399,8 +514,8 @@ public class TrainingService extends Service {
             }
         }) {
             @Override
-            protected Map<String,String> getParams(){
-                Map<String,String> params = new HashMap<String, String>();
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<String, String>();
                 Gson gson = mHelperInstance.getGson();
                 String stringModel = mHelperInstance.getFromPreferences(R.string.key_latest_model, "");
 
@@ -412,18 +527,18 @@ public class TrainingService extends Service {
 
             @Override
             public Map<String, String> getHeaders() throws AuthFailureError {
-                Map<String,String> params = new HashMap<String, String>();
-                params.put("Content-Type","application/x-www-form-urlencoded");
+                Map<String, String> params = new HashMap<String, String>();
+                params.put("Content-Type", "application/x-www-form-urlencoded");
                 return params;
             }
         };
 
-        Log.i(TAG, "Making post request..");
+        Log.i(TAG, "Making model post request..");
         addRequestToQueue(stringPUTRequest, "");
 
     }
 
-    public void handlePOSTResponse(String response){
+    public void handlePOSTResponse(String response) {
         JSONObject jsonResponse = null;
 
         /** response from POST request */
@@ -433,24 +548,9 @@ public class TrainingService extends Service {
 
             String cmd = jsonResponse.getString("cmd");
 
-            if(cmd.equalsIgnoreCase("delete")){
-                // int[] ids = mHelperInstance.getGson().fromJson(jsonResponse.getString("value"), int[].class);
-                /*String ids = jsonResponse.getString("value");
-                List<Sample> samplesToDelete = Sample.findWithQuery(Sample.class, "Select * from Sample where id in " + ids);
+            if (cmd.equalsIgnoreCase("delete")) {
 
-                Log.i(TAG, "id from server.. " + jsonResponse.getInt("value"));*/
-
-                /*Sample sample;
-                if(samplesToDelete.size() != 0){
-                    for(Iterator<Sample> iter = samplesToDelete.iterator(); iter.hasNext(); ){
-                        sample = iter.next();
-                        Log.d(TAG, "Deleting sample .. " + sample.getId());
-                        sample.delete();
-                    }
-                }else{
-                    Log.d(TAG, "toDelete is null");
-                }*/
-                Sample.deleteAll(Sample.class);
+                ExpandedSample.deleteAll(ExpandedSample.class);
 
                 // stop the service..
                 stopSelf();
@@ -462,7 +562,7 @@ public class TrainingService extends Service {
 
     }
 
-    public void handleError(VolleyError error){
+    public void handleError(VolleyError error) {
         Log.d(TAG, "Error.. " + error.getMessage());
     }
 }

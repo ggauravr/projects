@@ -68,7 +68,7 @@ public class CollectorActivity extends BaseUserActivity {
             public void onClick(View view) {
 
                 if (mHelperInstance.getServiceStatus()) {
-                    stopActivityUpdates(!mHelperInstance.getServiceStatus());
+                    stopActivityUpdates(true);
                     setMessages(false);
                     Toast.makeText(mContext, R.string.msg_service_kill, Toast.LENGTH_SHORT).show();
                 }
