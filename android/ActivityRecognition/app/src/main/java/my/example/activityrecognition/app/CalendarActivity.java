@@ -1,30 +1,28 @@
 package my.example.activityrecognition.app;
 
-import android.app.Activity;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.v7.app.ActionBar;
-import android.support.v7.app.ActionBarActivity;
-import android.util.Log;
-import android.view.ActionMode;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.GridView;
 import android.widget.Toast;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
-import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
+
+/**
+ *  @author : Gaurav Ramesh
+ *  @email : gggauravr@gmail.com         
+ * 
+ *  @class : CalendarActivity
+ *  @description: displays a week calendar for the user to store his class schedule
+ * 
+ */
 
 public class CalendarActivity extends BaseUserActivity {
 
@@ -36,19 +34,13 @@ public class CalendarActivity extends BaseUserActivity {
     
     public static boolean[]
         // selected : holds the saved calendar
-        // tempSelcted : holds the temporary changes to the calendar
+        // tempSelected : holds the temporary changes to the calendar
         selected = new boolean[Constants.N_GRIDS],
         tempSelected = new boolean[Constants.N_GRIDS];
     
     private ActionBar mActionBar;
     private GridView mGrid, mHeaderGrid;
 
-    // inherited attributes : mHelperInstance
-    // defined in BaseUserActivity
-
-    /**
-     * static block to initialize the time grid
-     */
     static {
         String hour, min;
         int row, temp;
@@ -78,11 +70,6 @@ public class CalendarActivity extends BaseUserActivity {
         System.arraycopy(selected, 0, tempSelected, 0, selected.length);
     }
 
-    /**
-     * Overridden methods below..
-     * 
-     */
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -93,10 +80,9 @@ public class CalendarActivity extends BaseUserActivity {
 
         mHelperInstance = HelperClass.getInstance();
 
-        if(mHelperInstance.getFromPreferences(R.string.key_timestamp, "") == ""){
-            // store the first ever launch time as the device id.. send it with every post request
-            long timestamp = new Date().getTime();
-            mHelperInstance.saveToPreferences(R.string.key_timestamp,timestamp);
+        if(mHelperInstance.getFromPreferences(R.string.key_device_id, "") == ""){
+            // this ID will be unique for each user
+            mHelperInstance.saveToPreferences(R.string.key_device_id, Settings.Secure.ANDROID_ID);
         }
 
         // restore calendar preferences
@@ -108,7 +94,7 @@ public class CalendarActivity extends BaseUserActivity {
             System.arraycopy(selected, 0, tempSelected, 0, selected.length);
 
             /**
-             *  if the schedule is not null and this activity is trigerred on startup, start the Collector Activity
+             *  if the schedule is not null and this activity is triggered on startup, start the Collector Activity
              *  else, if user has manually chosen to enter Calendar Activity, continue
              * 
              */
@@ -176,6 +162,7 @@ public class CalendarActivity extends BaseUserActivity {
                 break;
 
             case R.id.action_done:
+                saveCalendar();
                 startCollectorActivity();
                 break;
 
@@ -193,10 +180,6 @@ public class CalendarActivity extends BaseUserActivity {
         super.onSupportActionModeFinished(mode);
     }
 
-    /**
-     * Custom Methods defined below.. 
-     * 
-     */
     private void startCollectorActivity(){
         Intent intent = new Intent(this, CollectorActivity.class);
         startActivity(intent);

@@ -8,9 +8,6 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
-/**
- * Created by ggauravr on 3/15/14.
- */
 public class CalendarAdapter extends ArrayAdapter<String> {
 
     private Context mContext;

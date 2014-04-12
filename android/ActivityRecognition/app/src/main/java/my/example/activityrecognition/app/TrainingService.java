@@ -32,6 +32,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @author : Gaurav Ramesh
+ * @email : gggauravr@gmail.com
+ * 
+ * @class : TrainingService
+ * @description: does the processing of the sample, like learning the model,
+ * sending and receiving updated models and samples
+ */
+
 public class TrainingService extends Service {
 
     private static final String
@@ -43,7 +52,6 @@ public class TrainingService extends Service {
 
     private RequestQueue mRequestQueue;
     private Sample mSample;
-    private Gson mGson = null;
     private HelperClass mHelperInstance;
     private Vector
             mModelVector = new BasicVector(new double[Constants.N_DIMENSIONS]),
@@ -65,6 +73,8 @@ public class TrainingService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Bundle extras = intent.getExtras();
 
+        mHelperInstance = HelperClass.getInstance();
+
         mSample = new Sample(
                 extras.getInt("activity_type"),
                 extras.getInt("ringer_mode"),
@@ -72,9 +82,8 @@ public class TrainingService extends Service {
                 extras.getInt("am_pm"),
                 extras.getInt("hour_of_day")
         );
-        mHelperInstance = HelperClass.getInstance();
 
-        if(getActivityCount() == 0){
+        if (getActivityCount() == 0) {
             clearStoredSample();
         }
 
@@ -82,46 +91,48 @@ public class TrainingService extends Service {
         updateSample();
 
         if (getActivityCount() == N_ACTIVITIES_PER_SAMPLE) {
+            // handle the sample only when n activities are collected
             setOriginalLabel();
             handle();
         }
-
+        else{
+            stopSelf();
+        }
 
         return START_NOT_STICKY;
     }
 
-    public int getSampleCount(){
+    public int getSampleCount() {
         int count = Integer.parseInt(mHelperInstance.getFromPreferences(R.string.key_sample_count, "1"));
         return count;
     }
 
-    public void updateSampleCount(){
-        int count = Integer.parseInt(mHelperInstance.getFromPreferences(R.string.key_sample_count, "1"));
+    public void updateSampleCount() {
+        int count = getSampleCount();
 
         count += 1;
         mHelperInstance.saveToPreferences(R.string.key_activity_count, count);
     }
 
-    public int getActivityCount(){
+    public int getActivityCount() {
         int count = Integer.parseInt(mHelperInstance.getFromPreferences(R.string.key_activity_count, "0"));
         return count;
     }
 
-    public void updateActivityCount(){
+    public void updateActivityCount() {
         int count = Integer.parseInt(mHelperInstance.getFromPreferences(R.string.key_activity_count, "0"));
 
-        // TO DO : make this number configurable from server..
+        // TODO : make this number configurable from server..
         // check commands and values below.. for API and LAMBDA updates, do this in the same way
-        if(count % N_ACTIVITIES_PER_SAMPLE == 0){
+        if (count % N_ACTIVITIES_PER_SAMPLE == 0) {
             count = 0;
         }
 
         count += 1;
-        Log.d(TAG, "Activity/Sample count updated.. " + count);
         mHelperInstance.saveToPreferences(R.string.key_activity_count, count);
     }
 
-    public void clearStoredSample(){
+    public void clearStoredSample() {
         mHelperInstance.saveToPreferences(R.string.key_sample, new double[0]);
     }
 
@@ -149,9 +160,6 @@ public class TrainingService extends Service {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
-    /**
-     * Training and Sample processing functions
-     */
     public void updateSample() {
         double[] sampleArray = getStoredSample();
 
@@ -162,47 +170,49 @@ public class TrainingService extends Service {
                 updatedSample = currentSample.add(storedSample);
 
         mHelperInstance.saveToPreferences(R.string.key_sample, ((BasicVector) updatedSample).toArray());
-        Log.d(TAG, "Current sample : " + Arrays.toString( ((BasicVector) currentSample).toArray() ));
+        Log.d(TAG, "Current sample : " + Arrays.toString(((BasicVector) currentSample).toArray()));
         Log.d(TAG, "Saved Sample : " + mHelperInstance.getFromPreferences(R.string.key_sample, "[]"));
 
         updateActivityCount();
-        
+
     }
 
     public void setOriginalLabel() {
-        String storedSampleString = mHelperInstance.getFromPreferences(R.string.key_sample, "[]");
-        double[] sampleArray = mHelperInstance.getGson().fromJson(storedSampleString, double[].class);
-        int length = sampleArray.length;
-
-        // original label is at last but one position
-        Log.d(TAG, "Original Label " + sampleArray[length-1]);
-        if (sampleArray[length - 1] >= 3) {
-//            if majority, then in class
-            sampleArray[length - 1] = 1;
-            // add the sample to DB.. and delete from preferences
-            mHelperInstance.saveToPreferences(R.string.key_sample, sampleArray);
-        }
-    }
-
-    public int getOriginalLabel(){
         double[] sampleArray = getStoredSample();
         int length = sampleArray.length;
 
-        return (int) sampleArray[length-1];
+        // original label is at last but one position
+        Log.d(TAG, "Original Label " + sampleArray[length - 1]);
+        if (sampleArray[length - 1] >= (N_ACTIVITIES_PER_SAMPLE/2)+1) {
+            // if majority, set it to 1, else 0
+            sampleArray[length - 1] = 1;
+        }
+        else{
+            sampleArray[length - 1] = 0;
+        }
+        mHelperInstance.saveToPreferences(R.string.key_sample, sampleArray);
     }
 
-    public double[] getStoredSample(){
+    public int getOriginalLabel() {
+        double[] sampleArray = getStoredSample();
+        int length = sampleArray.length;
+
+        // last element in the array is the original label
+        return (int) sampleArray[length - 1];
+    }
+
+    public double[] getStoredSample() {
         String storedSampleString = mHelperInstance.getFromPreferences(R.string.key_sample, "[]");
         double[] sampleArray = mHelperInstance.getGson().fromJson(storedSampleString, double[].class);
 
-        if(sampleArray.length == 0){
-            sampleArray = new double[Constants.N_DIMENSIONS+2];
+        if (sampleArray.length == 0) {
+            sampleArray = new double[Constants.N_DIMENSIONS + 2];
         }
 
         return sampleArray;
     }
 
-    public Vector getSampleForProcessing(){
+    public Vector getSampleForProcessing() {
         double[] sampleArray = getStoredSample();
         double[] sampleForProcessing = new double[Constants.N_DIMENSIONS];
 
@@ -211,12 +221,9 @@ public class TrainingService extends Service {
         return new BasicVector(sampleForProcessing);
     }
 
-    public void saveSample(){
-
-    }
-
     public void getOriginalLabelForUserActivity() {
         int hour, minute, row, col, position, label = 0;
+        int minHour = Constants.INIT_HR, maxHour;
         String stringSchedule;
         boolean[] schedule = new boolean[Constants.N_GRIDS];
         Calendar rightNow = Calendar.getInstance();
@@ -225,22 +232,38 @@ public class TrainingService extends Service {
         hour = rightNow.get(Calendar.HOUR_OF_DAY);
         minute = rightNow.get(Calendar.MINUTE);
 
-        // calculate position of the current hour and min in the schedule saved
-        row = Math.abs(Constants.INIT_HR - hour) * 2 + 1;
-        row = (minute / 30) == 0 ? row : row + 1;
-        col = mSample.getOriginalDayOfWeek();
-        position = row * Constants.N_COLS + col;
-        stringSchedule = mHelperInstance.getFromPreferences(R.string.key_schedule, "");
-
-        if (stringSchedule == "") {
-            Log.d(TAG, "schedule string is empty.. returning");
-            return;
+        if (Constants.N_ROWS % 2 == 0) {
+            // if even number of rows
+            maxHour = Constants.INIT_HR + (Constants.N_ROWS / 2) - 1;
+        } else {
+            maxHour = Constants.INIT_HR + (Constants.N_ROWS - 1) / 2 - 1;
         }
 
-        schedule = mHelperInstance.getGson().fromJson(stringSchedule, boolean[].class);
+        Log.d(TAG, "Max Hour : " + maxHour);
 
-        if (position < Constants.N_GRIDS && schedule[position]) {
+        if (hour < Constants.INIT_HR || hour > maxHour) {
             label = 1;
+        } else {
+
+            // calculate position of the current hour and min in the schedule saved
+            row = Math.abs(Constants.INIT_HR - hour) * 2 + 1;
+            row = (minute / 30) == 0 ? row : row + 1;
+            col = mSample.getOriginalDayOfWeek();
+            position = row * Constants.N_COLS + col;
+            stringSchedule = mHelperInstance.getFromPreferences(R.string.key_schedule, "");
+
+            Log.d(TAG, "Row, Col, Position : " + row + ", " + col + ", " + position);
+
+            if (stringSchedule == "") {
+                Log.d(TAG, "schedule string is empty.. returning");
+                return;
+            }
+
+            schedule = mHelperInstance.getGson().fromJson(stringSchedule, boolean[].class);
+
+            if (position < Constants.N_GRIDS && schedule[position]) {
+                label = 1;
+            }
         }
 
         mSample.setOriginalLabel(label);
@@ -284,6 +307,7 @@ public class TrainingService extends Service {
         double
                 wx = x.innerProduct(mModelVector),
                 probability = 1 / (1 + Math.exp(-wx)),
+                // loss function
                 factor = -((double) getOriginalLabel() - probability) * probability * (1 - probability);
 
         mGradient = x.multiply(factor);
@@ -297,24 +321,25 @@ public class TrainingService extends Service {
 
     public void updateModel() {
 
+        // if lambda is stored in preferences, use that, else use the default lambda
         double lambda = Double.parseDouble(mHelperInstance.getFromPreferences(R.string.key_lambda, Double.toString(LAMBDA)));
 
         updateGradient();
         // lambda/t - t is the number of samples processed
         // OR lambda/root t
-        
-        mModelVector = mModelVector.subtract(mGradient.multiply(lambda/getSampleCount()));
-        
+
+        mModelVector = mModelVector.subtract(mGradient.multiply(lambda / getSampleCount()));
+
         Log.d(TAG, "Sample count " + getSampleCount());
         Log.d(TAG, "Updated Gradient" + getVectorAsString(mGradient));
         Log.d(TAG, "Updated Model " + getVectorAsString(mModelVector));
-        
+
         saveModel();
         updateSampleCount();
     }
 
     public void saveModel() {
-        mSample.setModel(getVectorAsString(mModelVector));
+        // mSample.setModel(getVectorAsString(mModelVector));
         mHelperInstance.saveToPreferences(R.string.key_latest_model, getVectorAsArray(mModelVector));
         Log.d(TAG, "Saved Model " + getVectorAsString(mModelVector));
     }
@@ -328,12 +353,7 @@ public class TrainingService extends Service {
     }
 
     public void fetchRemoteModel() {
-        /**
-         * TO DO: fetch params from network
-         *
-         *  fetch model params from network
-         *
-         */
+
         StringRequest stringGETRequest;
 
         Response.Listener<String> responseListener = new Response.Listener<String>() {
@@ -379,28 +399,27 @@ public class TrainingService extends Service {
         saveModel();
         // update the model, after updating gradient
         // updates and saves gradient, computes new model and calls saveModel() again
-        // TO DO : do this before update
         predict();
         updateModel();
 
         addSample();
 
         if (isConnectedToNetwork()) {
-            /**
-             * sync any remaining DB entries, before updating the current one
-             * sync data with the server
-             *
-             */
+            
             syncSamples();
 
         }
     }
 
+    /**
+     *
+     * send the gradient first, then the unsent samples
+     * deletes the sent samples after receiving a response
+     * 
+     */
     public void syncSamples() {
         sendGradientToServer();
-        /**
-         *  send an array of sample over to the server
-         */
+
         // send the device id
         // email and the timestamp .. 
         List<ExpandedSample> samples = ExpandedSample.findWithQuery(ExpandedSample.class, "Select * from Expanded_Sample ORDER BY id");
@@ -414,63 +433,25 @@ public class TrainingService extends Service {
 
         }
         Log.d(TAG, "Sending samples : " + mSamples);
-//        mSamples = samplesString;
         sendDataToServer();
 
     }
 
     public void predict() {
-        String storedSampleString = mHelperInstance.getFromPreferences(R.string.key_sample, "[]");
-        double[] storedSample = mHelperInstance.getGson().fromJson(storedSampleString, double[].class);
-        int lengthOfStoredSample = storedSample.length;
-        double[] sampleForProcessing = new double[lengthOfStoredSample - 2]; // ignore the two labels
-        Vector x = new BasicVector(sampleForProcessing);
+        Vector x = getSampleForProcessing();
 
         double wx = x.innerProduct(mModelVector);
         double probability = 1 / (1 + Math.exp(-wx));
+        double[] sampleArray = getStoredSample();
         int label = 0;
 
         Log.i(TAG, " Probability.. " + probability);
         if (probability > 0.5) {
             label = 1;
         }
-        
-        setPredictedLabel(label);
-    }
-
-    public void setPredictedLabel(int label) {
-        double[] sampleArray = getStoredSample();
 
         sampleArray[Constants.N_DIMENSIONS] = label;
         mHelperInstance.saveToPreferences(R.string.key_sample, sampleArray);
-    }
-
-    /**
-     * Volley functions
-     */
-    public RequestQueue getRequestQueue() {
-        if (mRequestQueue == null) {
-            mRequestQueue = Volley.newRequestQueue(getApplicationContext());
-        }
-
-        return mRequestQueue;
-    }
-
-    public <T> void addRequestToQueue(Request<T> request, String tag) {
-        request.setTag(TextUtils.isEmpty(tag) ? TAG : tag);
-
-        VolleyLog.d("Adding request to Queue.. %s\n", request.getUrl());
-
-        /* by default Volley cached JSON responses */
-        request.setShouldCache(false);
-        getRequestQueue().add(request);
-    }
-
-    public void cancelPendingRequests(Object tag) {
-        if (mRequestQueue != null) {
-            mRequestQueue.cancelAll(tag);
-        }
-
     }
 
     public void sendDataToServer() {
@@ -493,7 +474,7 @@ public class TrainingService extends Service {
                 Map<String, String> params = new HashMap<String, String>();
 
                 params.put("sample", "[" + TextUtils.join(", ", mSamples) + "]");
-                params.put("timestamp", mHelperInstance.getFromPreferences(R.string.key_timestamp, ""));
+                params.put("device_id", mHelperInstance.getFromPreferences(R.string.key_device_id, ""));
 
                 return params;
             }
@@ -530,12 +511,11 @@ public class TrainingService extends Service {
             @Override
             protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<String, String>();
-                Gson gson = mHelperInstance.getGson();
                 String stringGradient = mHelperInstance.getFromPreferences(R.string.key_latest_gradient, "");
 
                 Log.d(TAG, "Gradient sent : " + stringGradient);
                 params.put("gradient", stringGradient);
-                params.put("timestamp", mHelperInstance.getFromPreferences(R.string.key_timestamp, ""));
+                params.put("device_id", mHelperInstance.getFromPreferences(R.string.key_device_id, ""));
 
                 return params;
             }
@@ -569,22 +549,43 @@ public class TrainingService extends Service {
 
                 // stop the service..
                 stopSelf();
-            }
-            else if(cmd.equalsIgnoreCase(getString(R.string.key_api))){
+            } else if (cmd.equalsIgnoreCase(getString(R.string.key_api))) {
                 mHelperInstance.saveToPreferences(R.string.key_api, jsonResponse.getString("value"));
-            }
-            else if(cmd.equalsIgnoreCase(getString(R.string.key_lambda))){
+            } else if (cmd.equalsIgnoreCase(getString(R.string.key_lambda))) {
                 mHelperInstance.saveToPreferences(R.string.key_lambda, jsonResponse.getString("value"));
-            }
-            else if(cmd.equalsIgnoreCase(getString(R.string.key_n_activities))){
+            } else if (cmd.equalsIgnoreCase(getString(R.string.key_n_activities))) {
                 mHelperInstance.saveToPreferences(R.string.key_n_activities, jsonResponse.getString("value"));
-            }
-            else if(cmd.equalsIgnoreCase(getString(R.string.key_sample_frequency))){
+            } else if (cmd.equalsIgnoreCase(getString(R.string.key_sample_frequency))) {
                 mHelperInstance.saveToPreferences(R.string.key_sample_frequency, jsonResponse.getString("value"));
             }
-            
+
         } catch (Exception e) {
             e.printStackTrace();
+        }
+
+    }
+
+    public RequestQueue getRequestQueue() {
+        if (mRequestQueue == null) {
+            mRequestQueue = Volley.newRequestQueue(getApplicationContext());
+        }
+
+        return mRequestQueue;
+    }
+
+    public <T> void addRequestToQueue(Request<T> request, String tag) {
+        request.setTag(TextUtils.isEmpty(tag) ? TAG : tag);
+
+        VolleyLog.d("Adding request to Queue.. %s\n", request.getUrl());
+
+        /* by default Volley cached JSON responses */
+        request.setShouldCache(false);
+        getRequestQueue().add(request);
+    }
+
+    public void cancelPendingRequests(Object tag) {
+        if (mRequestQueue != null) {
+            mRequestQueue.cancelAll(tag);
         }
 
     }

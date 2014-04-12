@@ -4,15 +4,31 @@ android {
     compileSdkVersion 19
     buildToolsVersion '19.0.1'
 
+    signingConfigs {
+
+        release {
+            storeFile file(RELEASE_STORE_FILE)
+            storePassword RELEASE_STORE_PASSWORD
+            keyAlias RELEASE_KEY_ALIAS
+            keyPassword RELEASE_KEY_PASSWORD
+        }
+    }
+
+    // Use old PNG cruncher because of crashes on GB
+    // to fix actionbar/menu crash on Gingerbread
+    android.aaptOptions.useAaptPngCruncher = true
+
     defaultConfig {
         minSdkVersion 10
         targetSdkVersion 19
         versionCode 1
         versionName "1.0"
     }
+
     buildTypes {
         release {
-            runProguard false
+            runProguard true
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
     }

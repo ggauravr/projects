@@ -4,9 +4,6 @@ import android.util.Log;
 
 import com.orm.SugarApp;
 
-/**
- * Created by ggauravr on 4/5/14.
- */
 public class GlobalContextApp extends SugarApp {
 
     @Override
@@ -17,7 +14,6 @@ public class GlobalContextApp extends SugarApp {
     }
 
     protected void initHelperInstance(){
-        Log.i("GlobalApplicationContext", "Initializing HelperClass Instance");
         HelperClass.getInstance(this);
     }
 

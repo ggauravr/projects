@@ -34,8 +34,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Created by ggauravr on 2/28/14.
+ *  @author : Gaurav Ramesh
+ *  @email : gggauravr@gmail.com         
+ * 
+ *  @class : BackgroundService
+ *  @description: main service which runs on a separated thread from the main UI thread
+ *                      manages connecting to Google Play Services and to the ActivityRecognition API
+ *                      registers/unregisters for activity updates
+ * 
  */
+
 public class BackgroundService extends Service
     implements GooglePlayServicesClient.ConnectionCallbacks,
         GooglePlayServicesClient.OnConnectionFailedListener
@@ -59,7 +67,7 @@ public class BackgroundService extends Service
 
         @Override
         public void handleMessage(Message msg) {
-            // Log.d(TAG, "message : " + msg.toString());
+            
         }
     }
 
@@ -122,6 +130,10 @@ public class BackgroundService extends Service
 
         mHelperInstance.saveToPreferences(R.string.key_service_status, false);
         mServiceLooper.quit();
+
+        // necessary for sync
+        mHelperInstance.saveToPreferences(R.string.key_activity_count, 0);
+
         super.onDestroy();
 
     }
@@ -160,6 +172,4 @@ public class BackgroundService extends Service
         mARClient.removeActivityUpdates(mPendingIntent);
         mARClient.disconnect();
     }
-
-
 }

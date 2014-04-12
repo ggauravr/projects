@@ -9,12 +9,12 @@ public class Constants {
 
     // initial hour : 7 AM
     public static final int 
-        INIT_HR = 0,
-        N_ROWS = 64,
+        INIT_HR = 7,
+        N_ROWS = 28,
         N_COLS = 8,
         N_GRIDS = N_ROWS * N_COLS,
 
-        SAMPLE_FREQUENCY = 30000,
+        SAMPLE_FREQUENCY = 60000*3,
 
         N_ACTIVITIES = 6,
         N_RINGER_MODES = 3,

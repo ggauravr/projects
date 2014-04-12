@@ -6,12 +6,17 @@ import android.content.Intent;
 import android.util.Log;
 
 /**
- * Created by ggauravr on 4/8/14.
+ *  @author : Gaurav Ramesh
+ *  @email : gggauravr@gmail.com         
+ * 
+ *  @class : BootReceiver
+ *  @description: listens for system boot broadcast to start the background service, 
+ *                      if was previously running before reboot
+ * 
  */
 
-// here is the OnRevieve methode which will be called when boot completed
 public class BootReceiver extends BroadcastReceiver {
-
+    // executed when boot is completed
     @Override
     public void onReceive(Context context, Intent intent) {
 

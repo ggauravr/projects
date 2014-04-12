@@ -17,6 +17,16 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+/**
+ *  @author : Gaurav Ramesh
+ *  @email : gggauravr@gmail.com         
+ * 
+ *  @class : CollectorActivity
+ *  @description: handles starting and stopping data collection service
+ *                      also shows the detail of the sample collected
+ * 
+ */
+
 public class CollectorActivity extends BaseUserActivity {
 
     private final String TAG = getClass().getSimpleName();
@@ -62,7 +72,6 @@ public class CollectorActivity extends BaseUserActivity {
              * else
              *     set the status in preferences and start the service
              *     
-             * @param view
              */
             @Override
             public void onClick(View view) {

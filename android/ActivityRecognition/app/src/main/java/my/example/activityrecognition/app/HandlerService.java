@@ -31,8 +31,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Created by ggauravr on 3/1/14.
+ *  @author : Gaurav Ramesh
+ *  @email : gggauravr@gmail.com         
+ * 
+ *  @class : HandlerService
+ *  @description: intent service called with a pending intent, 
+ *                      whenever Activityrecognition API gives a response
+ *                      dies automatically after all code is executed
+ * 
  */
+
 public class HandlerService extends IntentService {
 
     private final String TAG = getClass().getSimpleName();
@@ -77,6 +85,7 @@ public class HandlerService extends IntentService {
                 action = getType(mostProbableActivity.getType()),
                 ringerMode = getRingerModeAsString(mAudioManager.getRingerMode());
 
+        // calling training service, which actually trains with the data
         Intent trainingServiceIntent = new Intent(mContext, TrainingService.class);
 
         trainingServiceIntent.putExtra("activity_type",mostProbableActivity.getType() );
@@ -87,10 +96,7 @@ public class HandlerService extends IntentService {
 
         startService(trainingServiceIntent);
 
-        /**
-         * send a local broadcast to display the sample details, if collector activity is active
-         *
-         * */
+        // this is to send sample data to the collector activity, which displays the information on screen
         sendActivityBroadcast(action, confidence, ringerMode, now);
 
         Log.d(TAG, "Action: " + action + ", Confidence: " + confidence + ", Ringer Mode: " + ringerMode);
@@ -99,6 +105,7 @@ public class HandlerService extends IntentService {
     }
 
     private void sendActivityBroadcast(String action, int confidence, String ringerMode, Calendar now){
+        // implicit intent, no destination specified
         Intent intent = new Intent(getString(R.string.msg_activity_broadcast));
 
         intent.putExtra("activity", action);

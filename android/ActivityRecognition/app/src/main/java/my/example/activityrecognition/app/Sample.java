@@ -14,8 +14,14 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * Created by ggauravr on 4/2/14.
+ *  @author : Gaurav Ramesh
+ *  @email : gggauravr@gmail.com         
+ * 
+ *  @class : Sample
+ *  @description: 
+ * 
  */
+
 public class Sample {
 
     private double[]

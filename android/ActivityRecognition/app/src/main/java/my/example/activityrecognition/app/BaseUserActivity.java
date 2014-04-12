@@ -8,6 +8,15 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+/**
+ *  @author : Gaurav Ramesh
+ *  @email : gggauravr@gmail.com         
+ * 
+ *  @class : BaseUserActivity
+ *  @description: implements some functions, common to multiple activities,
+ *                      like starting and stopping the background service
+ * 
+ */
 
 public class BaseUserActivity extends ActionBarActivity {
 
@@ -23,33 +32,26 @@ public class BaseUserActivity extends ActionBarActivity {
     }
 
     public void startActivityUpdates(){
-        Log.d(TAG, "Starting Activity Updates.. Setting Status to true");
+        Log.d(TAG, "Starting activity updates");
         Intent intent = new Intent(getApplicationContext(), BackgroundService.class);
         // without "stop_activity_updates" command, the service doesn't stop'
         startService(intent);
     }
 
     public void stopActivityUpdates(boolean createNew){
-        Log.d(TAG, "Stopping Activity Updates.. Setting Status to false");
+        Log.d(TAG, "Stopping activity updates");
         Intent intent = new Intent(getApplicationContext(), BackgroundService.class);
 
-
         if(createNew){
-            Log.d(TAG, "Creating new BG process to stop it.. ");
             intent.putExtra("stop_activity_updates", true);
             // this isn't stopService() call,, it's the start service call, with stop command in the intent
             // because background service takes care of stop the activity updates, can't be done here
             startService(intent);    
         }
         else{
-            Log.d(TAG, "Calling stop service.. bg service ");
+            Log.d(TAG, "Stopping BackgroundService");
             stopService(intent);
         }
-    }
-
-    public void showToast(String tag, String msg){
-        tag = tag.isEmpty() ? TAG : tag;
-        Toast.makeText(this, "TAG: " + tag + ", Msg: "+ msg, Toast.LENGTH_SHORT).show();
     }
 
 }
