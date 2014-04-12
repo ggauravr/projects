@@ -52,9 +52,6 @@ public class BackgroundService extends Service
 
     private boolean mIsConnected = false;
 
-    // if sSelf is null, the background service isn't running
-    private static BackgroundService sSelf = null;
-
     private final class ServiceHandler extends Handler {
         public ServiceHandler(Looper looper) {
             super(looper);
@@ -64,10 +61,6 @@ public class BackgroundService extends Service
         public void handleMessage(Message msg) {
             // Log.d(TAG, "message : " + msg.toString());
         }
-    }
-
-    public static BackgroundService getInstance(){
-        return sSelf;
     }
 
     @Override
@@ -82,7 +75,7 @@ public class BackgroundService extends Service
         mServiceHandler = new ServiceHandler(mServiceLooper);
 
         mHelperInstance = HelperClass.getInstance(getApplicationContext());
-        sSelf = this;
+        
         mHelperInstance.saveToPreferences(R.string.key_service_status, true);
         
         connectToClient();
@@ -93,6 +86,7 @@ public class BackgroundService extends Service
 
         mCmd = intent.getBooleanExtra("stop_activity_updates", false);
 
+        // VERY IMPORTANT : DO NOT MESS
         if(mIsConnected){
             stopSelf();
         }
@@ -124,10 +118,8 @@ public class BackgroundService extends Service
         }
 
         Intent intent = new Intent(getApplicationContext(), TrainingService.class);
-        Log.d(TAG, "Stopping training service");
         stopService(intent);
 
-        sSelf = null;
         mHelperInstance.saveToPreferences(R.string.key_service_status, false);
         mServiceLooper.quit();
         super.onDestroy();
@@ -145,9 +137,9 @@ public class BackgroundService extends Service
 
     @Override
     public void onConnected(Bundle bundle) {
+        int sampleFrequency = Integer.parseInt(mHelperInstance.getFromPreferences(R.string.key_sample_frequency, Integer.toString(Constants.SAMPLE_FREQUENCY)));
         mIsConnected = true;
-        mARClient.requestActivityUpdates(Constants.SAMPLE_FREQUENCY, mPendingIntent);
-        Log.d(TAG, "Connected to Play Services .. ");
+        mARClient.requestActivityUpdates(sampleFrequency, mPendingIntent);
         if(mCmd){
             stopSelf();
         }

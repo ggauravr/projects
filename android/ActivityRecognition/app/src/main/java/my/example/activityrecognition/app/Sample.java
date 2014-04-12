@@ -16,7 +16,7 @@ import java.util.Date;
 /**
  * Created by ggauravr on 4/2/14.
  */
-public class Sample /*extends SugarRecord<Sample> implements Serializable*/ {
+public class Sample {
 
     private double[]
             mActivity = new double[Constants.N_ACTIVITIES],
@@ -36,21 +36,14 @@ public class Sample /*extends SugarRecord<Sample> implements Serializable*/ {
             mModel,
             mGradient;
 
-    /*public Sample(Context ctx) {
-        super(ctx);
-    }*/
-
     public Sample(
                             /* parameters */
-//                            Context ctx,
                             int _activity,
                             int _ringerMode,
                             int _dayOfWeek,
                             int _approxTime,
                             int _hour
     ) {
-
-//        super(ctx);
 
         mTimestamp = new Date().getTime();
         mActivity[_activity] = 1;
@@ -66,13 +59,14 @@ public class Sample /*extends SugarRecord<Sample> implements Serializable*/ {
         } else {
             mDayOfWeek[0] = 1;
         }
-//        mDayOfWeek = _dayOfWeek;
-        if (_hour >= 7 && _hour <= 20) {
+
+        // make these numbers also configurable
+        if (_hour >= 7 && _hour <= 19) {
             mHour[0] = 1;
         } else {
             mHour[0] = 1;
         }
-//        mHour = _hour;
+
         // check and set it later
         mOriginalLabel = 0;
         mPredictedLabel = 0;
@@ -80,15 +74,17 @@ public class Sample /*extends SugarRecord<Sample> implements Serializable*/ {
 
     public double[] getSampleArray(){
         // this will be stored in preferences
-
-        // no bias term here..
+        // extra parameters : predicted label and original label, last two in the same order
+        
         double[] sampleArray = new double[Constants.N_DIMENSIONS+2];
+        
         System.arraycopy(mActivity, 0, sampleArray, 0, mActivity.length);
         System.arraycopy(mRingerMode, 0, sampleArray, mActivity.length, mRingerMode.length);
         System.arraycopy(mDayOfWeek, 0, sampleArray, mActivity.length+mRingerMode.length, mDayOfWeek.length);
         System.arraycopy(mApproxTime, 0, sampleArray, mActivity.length+mRingerMode.length+mDayOfWeek.length, mApproxTime.length);
         System.arraycopy(mHour, 0, sampleArray, mActivity.length+mRingerMode.length+mDayOfWeek.length+mApproxTime.length, mHour.length);
-        sampleArray[Constants.N_DIMENSIONS-1] = 0; // bias
+        
+        sampleArray[Constants.N_DIMENSIONS-1] = 0; // bias, doesn't matter, will be changed to 1, when being sent to the server
         sampleArray[Constants.N_DIMENSIONS] = 0; // predicted label
         sampleArray[Constants.N_DIMENSIONS+1] = mOriginalLabel; // original label
 
@@ -98,49 +94,6 @@ public class Sample /*extends SugarRecord<Sample> implements Serializable*/ {
     public Vector getSampleVector() {
         Vector vector = new BasicVector(getSampleArray());
         return vector;
-    }
-
-    public Vector getSampleVectorForProcessing() {
-        Vector vector = new BasicVector(getSampleArrayForProcessing());
-        return vector;
-    }
-
-    public double[] getSampleArrayForProcessing() {
-        double[] sampleArray = new double[Constants.N_DIMENSIONS];
-        System.arraycopy(mActivity, 0, sampleArray, 0, mActivity.length);
-        System.arraycopy(mRingerMode, 0, sampleArray, mActivity.length, mRingerMode.length);
-        System.arraycopy(mDayOfWeek, 0, sampleArray, mActivity.length+mRingerMode.length, mDayOfWeek.length);
-        System.arraycopy(mApproxTime, 0, sampleArray, mActivity.length+mRingerMode.length+mDayOfWeek.length, mApproxTime.length);
-        System.arraycopy(mHour, 0, sampleArray, mActivity.length+mRingerMode.length+mDayOfWeek.length+mApproxTime.length, mHour.length);
-        sampleArray[Constants.N_DIMENSIONS-1] = 1; // bias
-
-        return sampleArray;
-    }
-
-    public String getCommObject() {
-
-        JSONObject commObject = new JSONObject();
-        String sample = "";
-        // extra params : id, predicted label and original label
-        double[] commObjectArray = new double[Constants.N_DIMENSIONS+3];
-
-//        commObjectArray[0] = id;
-        System.arraycopy(getSampleArray(), 0, commObjectArray, 1, getSampleArray().length);
-        // bias
-        commObjectArray[Constants.N_DIMENSIONS] = 1;
-        commObjectArray[Constants.N_DIMENSIONS+1] = mPredictedLabel;
-        commObjectArray[Constants.N_DIMENSIONS+2] = mOriginalLabel;
-
-        sample = HelperClass.getInstance().getGson().toJson(commObjectArray);
-
-        try {
-            commObject.put("sample", sample);
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        return sample;
     }
 
     public String getStringFromVector(Vector vector) {
@@ -163,7 +116,6 @@ public class Sample /*extends SugarRecord<Sample> implements Serializable*/ {
         mPredictedLabel = label;
     }
 
-
     public long getTimestamp() {
         return mTimestamp;
     }
@@ -176,22 +128,6 @@ public class Sample /*extends SugarRecord<Sample> implements Serializable*/ {
         return mOriginalLabel;
     }
 
-   /* public int getActivity() {
-        return mActivity;
-    }
-
-    public int getRingerMode() {
-        return mRingerMode;
-    }
-
-    public int getApproxTime() {
-        return mApproxTime;
-    }
-
-    public int getHour() {
-        return mHour;
-    }
-    */
     public int getOriginalDayOfWeek() {
         return mOriginalDayOfWeek;
 

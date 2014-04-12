@@ -11,6 +11,7 @@ import java.io.Serializable;
  */
 public class ExpandedSample extends SugarRecord<ExpandedSample> implements Serializable {
 
+    // this will be sent to the server as a sample, and also will be stored in the local/phone DB
     private String mSampleArray;
 
     public ExpandedSample(Context ctx){
@@ -20,9 +21,6 @@ public class ExpandedSample extends SugarRecord<ExpandedSample> implements Seria
     public ExpandedSample(Context ctx, double[] sampleArray){
         super(ctx);
 
-//        mSampleArray = new double[Constants.N_DIMENSIONS+2];
-
-//        System.arraycopy(sampleArray, 0, mSampleArray, 0, sampleArray.length-2);
         // bias
         sampleArray[Constants.N_DIMENSIONS - 1] = 1;
         // predicted label

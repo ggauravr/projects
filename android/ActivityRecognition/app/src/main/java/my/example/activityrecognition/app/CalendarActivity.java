@@ -23,6 +23,7 @@ import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 public class CalendarActivity extends BaseUserActivity {
@@ -91,11 +92,12 @@ public class CalendarActivity extends BaseUserActivity {
         String schedule;
 
         mHelperInstance = HelperClass.getInstance();
-        Gson gson = mHelperInstance.getGson();
 
-        double[] a = new double[0];
-//        a[4] = 5.0;
-        Log.d(TAG, "Gson behavior : " + gson.toJson(gson.fromJson("[]", double[].class)));
+        if(mHelperInstance.getFromPreferences(R.string.key_timestamp, "") == ""){
+            // store the first ever launch time as the device id.. send it with every post request
+            long timestamp = new Date().getTime();
+            mHelperInstance.saveToPreferences(R.string.key_timestamp,timestamp);
+        }
 
         // restore calendar preferences
         schedule = mHelperInstance.getFromPreferences(R.string.key_schedule, "");

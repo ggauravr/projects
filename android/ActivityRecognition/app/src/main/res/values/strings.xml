@@ -34,6 +34,12 @@
     <string name="key_latest_gradient">gradient</string>
     <string name="key_sample">sample</string>
     <string name="key_activity_count">activity_count</string>
+    <string name="key_sample_count">sample_count</string>
+    <string name="key_api">api_address</string>
+    <string name="key_lambda">lambda</string>
+    <string name="key_timestamp">timestamp</string>
+    <string name="key_n_activities">activities_per_sample</string>
+    <string name="key_sample_frequency">sample_frequency</string>
 
     <!-- broadcast messages -->
     <string name="msg_activity_broadcast">activity_broadcast</string>

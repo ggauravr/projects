@@ -36,14 +36,10 @@ public class TrainingService extends Service {
 
     private static final String
             TAG = "TrainingService",
-            API_URL = "http://www.ml-training-backup.appspot.com/activity_api";
-    // API_URL = "http://127.0.0.1:8080/test"
-
-    private static final int
-            TYPE_SAMPLE = 1,
-            TYPE_MODEL = 2;
+            DEFAULT_API_URL = "http://www.ml-training-backup.appspot.com/activity_api";
 
     private static final double LAMBDA = 0.001;
+    private static final int N_ACTIVITIES_PER_SAMPLE = 5;
 
     private RequestQueue mRequestQueue;
     private Sample mSample;
@@ -70,7 +66,6 @@ public class TrainingService extends Service {
         Bundle extras = intent.getExtras();
 
         mSample = new Sample(
-//                getApplicationContext(),
                 extras.getInt("activity_type"),
                 extras.getInt("ringer_mode"),
                 extras.getInt("day_of_week"),
@@ -86,13 +81,25 @@ public class TrainingService extends Service {
         getOriginalLabelForUserActivity();
         updateSample();
 
-        if (getActivityCount() == 5) {
+        if (getActivityCount() == N_ACTIVITIES_PER_SAMPLE) {
             setOriginalLabel();
             handle();
         }
 
 
         return START_NOT_STICKY;
+    }
+
+    public int getSampleCount(){
+        int count = Integer.parseInt(mHelperInstance.getFromPreferences(R.string.key_sample_count, "1"));
+        return count;
+    }
+
+    public void updateSampleCount(){
+        int count = Integer.parseInt(mHelperInstance.getFromPreferences(R.string.key_sample_count, "1"));
+
+        count += 1;
+        mHelperInstance.saveToPreferences(R.string.key_activity_count, count);
     }
 
     public int getActivityCount(){
@@ -103,11 +110,14 @@ public class TrainingService extends Service {
     public void updateActivityCount(){
         int count = Integer.parseInt(mHelperInstance.getFromPreferences(R.string.key_activity_count, "0"));
 
-        if(count == 5){
+        // TO DO : make this number configurable from server..
+        // check commands and values below.. for API and LAMBDA updates, do this in the same way
+        if(count % N_ACTIVITIES_PER_SAMPLE == 0){
             count = 0;
         }
 
         count += 1;
+        Log.d(TAG, "Activity/Sample count updated.. " + count);
         mHelperInstance.saveToPreferences(R.string.key_activity_count, count);
     }
 
@@ -121,7 +131,6 @@ public class TrainingService extends Service {
 
         expandedSample.save();
         Log.d(TAG, "Sample saved in DB: " + expandedSample.getId());
-//        double[] a = new double[0];
         mHelperInstance.saveToPreferences(R.string.key_sample, new double[0]);
     }
 
@@ -248,7 +257,6 @@ public class TrainingService extends Service {
              * updateGradient() and updateModel() called in handleResponse
              */
             fetchRemoteModel();
-            // syncEntries();
         } else {
             /**
              * compute the gradient, and train the model
@@ -284,18 +292,25 @@ public class TrainingService extends Service {
     }
 
     public void saveGradient() {
-        Log.d(TAG, "Saving Gradient : " + getVectorAsString(mGradient));
         mHelperInstance.saveToPreferences(R.string.key_latest_gradient, getVectorAsArray(mGradient));
     }
 
     public void updateModel() {
+
+        double lambda = Double.parseDouble(mHelperInstance.getFromPreferences(R.string.key_lambda, Double.toString(LAMBDA)));
+
         updateGradient();
         // lambda/t - t is the number of samples processed
         // OR lambda/root t
-        mModelVector = mModelVector.subtract(mGradient.multiply(LAMBDA));
+        
+        mModelVector = mModelVector.subtract(mGradient.multiply(lambda/getSampleCount()));
+        
+        Log.d(TAG, "Sample count " + getSampleCount());
         Log.d(TAG, "Updated Gradient" + getVectorAsString(mGradient));
         Log.d(TAG, "Updated Model " + getVectorAsString(mModelVector));
+        
         saveModel();
+        updateSampleCount();
     }
 
     public void saveModel() {
@@ -344,7 +359,7 @@ public class TrainingService extends Service {
             }
         };
 
-        stringGETRequest = new StringRequest(Request.Method.GET, API_URL, responseListener, errorListener);
+        stringGETRequest = new StringRequest(Request.Method.GET, mHelperInstance.getFromPreferences(R.string.key_api, DEFAULT_API_URL), responseListener, errorListener);
 
         addRequestToQueue(stringGETRequest, "");
     }
@@ -382,7 +397,7 @@ public class TrainingService extends Service {
     }
 
     public void syncSamples() {
-        sendModelToServer();
+        sendGradientToServer();
         /**
          *  send an array of sample over to the server
          */
@@ -419,7 +434,7 @@ public class TrainingService extends Service {
         if (probability > 0.5) {
             label = 1;
         }
-//        Log.i(TAG, "Probability .. " + probability + ", Predicted Class : " + label + ", Original Class : " + mSample.getOriginalLabel());
+        
         setPredictedLabel(label);
     }
 
@@ -459,7 +474,7 @@ public class TrainingService extends Service {
     }
 
     public void sendDataToServer() {
-        StringRequest stringPUTRequest = new StringRequest(Request.Method.POST, API_URL, new Response.Listener<String>() {
+        StringRequest stringPUTRequest = new StringRequest(Request.Method.POST, mHelperInstance.getFromPreferences(R.string.key_api, DEFAULT_API_URL), new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
 
@@ -476,10 +491,9 @@ public class TrainingService extends Service {
             @Override
             protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<String, String>();
-                Gson gson = mHelperInstance.getGson();
 
-//                Log.d(TAG, "Sending Samples : " + "[" + TextUtils.join(", ", mSamples) + "]");
                 params.put("sample", "[" + TextUtils.join(", ", mSamples) + "]");
+                params.put("timestamp", mHelperInstance.getFromPreferences(R.string.key_timestamp, ""));
 
                 return params;
             }
@@ -497,9 +511,9 @@ public class TrainingService extends Service {
 
     }
 
-    public void sendModelToServer() {
+    public void sendGradientToServer() {
 
-        StringRequest stringPUTRequest = new StringRequest(Request.Method.POST, API_URL, new Response.Listener<String>() {
+        StringRequest stringPUTRequest = new StringRequest(Request.Method.POST, mHelperInstance.getFromPreferences(R.string.key_api, DEFAULT_API_URL), new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
 
@@ -517,10 +531,11 @@ public class TrainingService extends Service {
             protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<String, String>();
                 Gson gson = mHelperInstance.getGson();
-                String stringModel = mHelperInstance.getFromPreferences(R.string.key_latest_model, "");
+                String stringGradient = mHelperInstance.getFromPreferences(R.string.key_latest_gradient, "");
 
-                Log.d(TAG, "Model sent : " + stringModel);
-                params.put("model", stringModel);
+                Log.d(TAG, "Gradient sent : " + stringGradient);
+                params.put("gradient", stringGradient);
+                params.put("timestamp", mHelperInstance.getFromPreferences(R.string.key_timestamp, ""));
 
                 return params;
             }
@@ -533,7 +548,7 @@ public class TrainingService extends Service {
             }
         };
 
-        Log.i(TAG, "Making model post request..");
+        Log.i(TAG, "Making gradient post request..");
         addRequestToQueue(stringPUTRequest, "");
 
     }
@@ -555,7 +570,19 @@ public class TrainingService extends Service {
                 // stop the service..
                 stopSelf();
             }
-
+            else if(cmd.equalsIgnoreCase(getString(R.string.key_api))){
+                mHelperInstance.saveToPreferences(R.string.key_api, jsonResponse.getString("value"));
+            }
+            else if(cmd.equalsIgnoreCase(getString(R.string.key_lambda))){
+                mHelperInstance.saveToPreferences(R.string.key_lambda, jsonResponse.getString("value"));
+            }
+            else if(cmd.equalsIgnoreCase(getString(R.string.key_n_activities))){
+                mHelperInstance.saveToPreferences(R.string.key_n_activities, jsonResponse.getString("value"));
+            }
+            else if(cmd.equalsIgnoreCase(getString(R.string.key_sample_frequency))){
+                mHelperInstance.saveToPreferences(R.string.key_sample_frequency, jsonResponse.getString("value"));
+            }
+            
         } catch (Exception e) {
             e.printStackTrace();
         }
