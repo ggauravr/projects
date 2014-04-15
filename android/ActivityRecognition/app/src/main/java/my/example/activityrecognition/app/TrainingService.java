@@ -39,6 +39,12 @@ import java.util.Map;
  * @class : TrainingService
  * @description: does the processing of the sample, like learning the model,
  * sending and receiving updated models and samples
+ * 
+ * terminologies used : 
+ * activity - one instance of collected data
+ * sample - 'n' activities make up a sample, labels are predicted for one sample, and sent to the server  
+ * processing is done only when one sample(n activities) is collected
+ * 
  */
 
 public class TrainingService extends Service {
@@ -87,12 +93,12 @@ public class TrainingService extends Service {
             clearStoredSample();
         }
 
-        getOriginalLabelForUserActivity();
-        updateSample();
+        getOriginalLabelForActivity();
+        updateStoredSample();
 
         if (getActivityCount() == N_ACTIVITIES_PER_SAMPLE) {
-            // handle the sample only when n activities are collected
-            setOriginalLabel();
+            // handle the sample only when 'n' activities are collected
+            setOriginalLabelForActivity();
             handle();
         }
         else{
@@ -160,7 +166,7 @@ public class TrainingService extends Service {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
-    public void updateSample() {
+    public void updateStoredSample() {
         double[] sampleArray = getStoredSample();
 
         Vector
@@ -177,7 +183,7 @@ public class TrainingService extends Service {
 
     }
 
-    public void setOriginalLabel() {
+    public void setOriginalLabelForActivity() {
         double[] sampleArray = getStoredSample();
         int length = sampleArray.length;
 
@@ -193,7 +199,7 @@ public class TrainingService extends Service {
         mHelperInstance.saveToPreferences(R.string.key_sample, sampleArray);
     }
 
-    public int getOriginalLabel() {
+    public int getOriginalLabelForSample() {
         double[] sampleArray = getStoredSample();
         int length = sampleArray.length;
 
@@ -221,7 +227,7 @@ public class TrainingService extends Service {
         return new BasicVector(sampleForProcessing);
     }
 
-    public void getOriginalLabelForUserActivity() {
+    public void getOriginalLabelForActivity() {
         int hour, minute, row, col, position, label = 0;
         int minHour = Constants.INIT_HR, maxHour;
         String stringSchedule;
@@ -266,7 +272,7 @@ public class TrainingService extends Service {
             }
         }
 
-        mSample.setOriginalLabel(label);
+        mSample.setOriginalLabelForActivity(label);
     }
 
     public void handle() {
@@ -308,7 +314,7 @@ public class TrainingService extends Service {
                 wx = x.innerProduct(mModelVector),
                 probability = 1 / (1 + Math.exp(-wx)),
                 // loss function
-                factor = -((double) getOriginalLabel() - probability) * probability * (1 - probability);
+                factor = -((double) getOriginalLabelForSample() - probability) * probability * (1 - probability);
 
         mGradient = x.multiply(factor);
         Log.d(TAG, "Computed Gradient : " + getVectorAsString(mGradient));
@@ -339,7 +345,6 @@ public class TrainingService extends Service {
     }
 
     public void saveModel() {
-        // mSample.setModel(getVectorAsString(mModelVector));
         mHelperInstance.saveToPreferences(R.string.key_latest_model, getVectorAsArray(mModelVector));
         Log.d(TAG, "Saved Model " + getVectorAsString(mModelVector));
     }
@@ -418,7 +423,6 @@ public class TrainingService extends Service {
      * 
      */
     public void syncSamples() {
-        sendGradientToServer();
 
         // send the device id
         // email and the timestamp .. 
@@ -435,6 +439,9 @@ public class TrainingService extends Service {
         Log.d(TAG, "Sending samples : " + mSamples);
         sendDataToServer();
 
+        // send data before gradient, 
+        // to do the prediction at the server, before updating the model
+        sendGradientToServer();
     }
 
     public void predict() {
@@ -450,6 +457,8 @@ public class TrainingService extends Service {
             label = 1;
         }
 
+        // predicted label is at position N_DIMENSIONS
+        // index 0 - N_DIMENSIONS-1 have the features and bias
         sampleArray[Constants.N_DIMENSIONS] = label;
         mHelperInstance.saveToPreferences(R.string.key_sample, sampleArray);
     }
@@ -547,8 +556,6 @@ public class TrainingService extends Service {
 
                 ExpandedSample.deleteAll(ExpandedSample.class);
 
-                // stop the service..
-                stopSelf();
             } else if (cmd.equalsIgnoreCase(getString(R.string.key_api))) {
                 mHelperInstance.saveToPreferences(R.string.key_api, jsonResponse.getString("value"));
             } else if (cmd.equalsIgnoreCase(getString(R.string.key_lambda))) {
@@ -557,6 +564,14 @@ public class TrainingService extends Service {
                 mHelperInstance.saveToPreferences(R.string.key_n_activities, jsonResponse.getString("value"));
             } else if (cmd.equalsIgnoreCase(getString(R.string.key_sample_frequency))) {
                 mHelperInstance.saveToPreferences(R.string.key_sample_frequency, jsonResponse.getString("value"));
+            }
+
+            // save command is the response from posting gradient
+            // post response from sample is yet to be received.. so don't stop it
+            // for all other commands, it's safe to stop the service
+            if(!cmd.equalsIgnoreCase("save")){
+                // stop the service..
+                stopSelf();
             }
 
         } catch (Exception e) {
