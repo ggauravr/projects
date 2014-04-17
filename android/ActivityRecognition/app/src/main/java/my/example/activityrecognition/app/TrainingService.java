@@ -18,7 +18,6 @@ import com.android.volley.VolleyError;
 import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
-import com.google.gson.Gson;
 
 import org.json.JSONObject;
 import org.la4j.vector.Vector;
@@ -35,16 +34,14 @@ import java.util.Map;
 /**
  * @author : Gaurav Ramesh
  * @email : gggauravr@gmail.com
- * 
  * @class : TrainingService
  * @description: does the processing of the sample, like learning the model,
  * sending and receiving updated models and samples
- * 
- * terminologies used : 
+ * <p/>
+ * terminologies used :
  * activity - one instance of collected data
- * sample - 'n' activities make up a sample, labels are predicted for one sample, and sent to the server  
+ * sample - 'n' activities make up a sample, labels are predicted for one sample, and sent to the server
  * processing is done only when one sample(n activities) is collected
- * 
  */
 
 public class TrainingService extends Service {
@@ -53,11 +50,14 @@ public class TrainingService extends Service {
             TAG = "TrainingService",
             DEFAULT_API_URL = "http://www.ml-training-backup.appspot.com/activity_api";
 
-    private static final double LAMBDA = 0.001;
+    private static final double LAMBDA = 10E-5;
     private static final int N_ACTIVITIES_PER_SAMPLE = 5;
 
     private RequestQueue mRequestQueue;
-    private Sample mSample;
+    private UserActivity mUserActivity;
+    private boolean isNewSample = true;
+    private String mSampleToSync;
+    private ExpandedSample mSampleToDelete;
     private HelperClass mHelperInstance;
     private Vector
             mModelVector = new BasicVector(new double[Constants.N_DIMENSIONS]),
@@ -81,7 +81,7 @@ public class TrainingService extends Service {
 
         mHelperInstance = HelperClass.getInstance();
 
-        mSample = new Sample(
+        mUserActivity = new UserActivity(
                 extras.getInt("activity_type"),
                 extras.getInt("ringer_mode"),
                 extras.getInt("day_of_week"),
@@ -89,27 +89,54 @@ public class TrainingService extends Service {
                 extras.getInt("hour_of_day")
         );
 
-        if (getActivityCount() == 0) {
+        if (getActivityCount() == 0 || getActivityCount() == N_ACTIVITIES_PER_SAMPLE) {
             clearStoredSample();
         }
 
         getOriginalLabelForActivity();
+
+        // add the current activity vector to the stored sample vector
         updateStoredSample();
 
+
+        Log.d(TAG, "Activity Count : " + getActivityCount());
+        // time to sync the new sample
         if (getActivityCount() == N_ACTIVITIES_PER_SAMPLE) {
             // handle the sample only when 'n' activities are collected
-            setOriginalLabelForActivity();
+            isNewSample = true;
+            setOriginalLabelForSample();
             handle();
-        }
-        else{
-            stopSelf();
-        }
+
+        } else {
+           /**
+            * check if any unsent sample is in the database.. if there is, process it
+            *
+            * */
+            List<ExpandedSample> samples = ExpandedSample.findWithQuery(ExpandedSample.class, "Select * from Expanded_Sample ORDER BY id");
+            ExpandedSample sample;
+
+            if(samples.size() == 0){
+                stopSelf();
+            }
+            else{
+                isNewSample = false;
+                for (Iterator<ExpandedSample> iter = samples.iterator(); iter.hasNext(); ) {
+                    sample = iter.next();
+                    mHelperInstance.saveToPreferences(R.string.key_old_sample, sample.getSampleArray());
+                    mSampleToDelete = sample;
+                    break;
+                }
+                handle();
+            }
+
+         }
 
         return START_NOT_STICKY;
     }
 
     public int getSampleCount() {
         int count = Integer.parseInt(mHelperInstance.getFromPreferences(R.string.key_sample_count, "1"));
+        Log.d(TAG, "Sample Count: " + count);
         return count;
     }
 
@@ -117,7 +144,11 @@ public class TrainingService extends Service {
         int count = getSampleCount();
 
         count += 1;
-        mHelperInstance.saveToPreferences(R.string.key_activity_count, count);
+        mHelperInstance.saveToPreferences(R.string.key_sample_count, count);
+    }
+
+    public void clearSampleCount(){
+        mHelperInstance.saveToPreferences(R.string.key_sample_count, 1);
     }
 
     public int getActivityCount() {
@@ -170,46 +201,50 @@ public class TrainingService extends Service {
         double[] sampleArray = getStoredSample();
 
         Vector
-                currentSample = mSample.getSampleVector();
-
-        Vector storedSample = new BasicVector(sampleArray),
+                currentSample = mUserActivity.getUserActivityVector(),
+                storedSample = new BasicVector(sampleArray),
                 updatedSample = currentSample.add(storedSample);
 
         mHelperInstance.saveToPreferences(R.string.key_sample, ((BasicVector) updatedSample).toArray());
-        Log.d(TAG, "Current sample : " + Arrays.toString(((BasicVector) currentSample).toArray()));
-        Log.d(TAG, "Saved Sample : " + mHelperInstance.getFromPreferences(R.string.key_sample, "[]"));
-
+        
         updateActivityCount();
 
     }
 
-    public void setOriginalLabelForActivity() {
+    public void setOriginalLabelForSample() {
         double[] sampleArray = getStoredSample();
-        int length = sampleArray.length;
-
         // original label is at last but one position
-        Log.d(TAG, "Original Label " + sampleArray[length - 1]);
-        if (sampleArray[length - 1] >= (N_ACTIVITIES_PER_SAMPLE/2)+1) {
+        int originalLabelPosition = sampleArray.length - 1;
+
+        if (sampleArray[originalLabelPosition] >= (N_ACTIVITIES_PER_SAMPLE / 2) + 1) {
             // if majority, set it to 1, else 0
-            sampleArray[length - 1] = 1;
-        }
-        else{
-            sampleArray[length - 1] = 0;
+            sampleArray[originalLabelPosition] = 1;
+        } else {
+            sampleArray[originalLabelPosition] = 0;
         }
         mHelperInstance.saveToPreferences(R.string.key_sample, sampleArray);
     }
 
     public int getOriginalLabelForSample() {
         double[] sampleArray = getStoredSample();
-        int length = sampleArray.length;
+        int originalLabelPosition = sampleArray.length - 1;
 
         // last element in the array is the original label
-        return (int) sampleArray[length - 1];
+        return (int) sampleArray[originalLabelPosition];
     }
 
     public double[] getStoredSample() {
-        String storedSampleString = mHelperInstance.getFromPreferences(R.string.key_sample, "[]");
-        double[] sampleArray = mHelperInstance.getGson().fromJson(storedSampleString, double[].class);
+        String storedSampleString;
+        double[] sampleArray;
+
+        if(!isNewSample){
+            storedSampleString = mHelperInstance.getFromPreferences(R.string.key_old_sample, "[]");
+        }
+        else{
+            storedSampleString = mHelperInstance.getFromPreferences(R.string.key_sample, "[]");
+        }
+
+        sampleArray = mHelperInstance.getGson().fromJson(storedSampleString, double[].class);
 
         if (sampleArray.length == 0) {
             sampleArray = new double[Constants.N_DIMENSIONS + 2];
@@ -219,8 +254,9 @@ public class TrainingService extends Service {
     }
 
     public Vector getSampleForProcessing() {
-        double[] sampleArray = getStoredSample();
-        double[] sampleForProcessing = new double[Constants.N_DIMENSIONS];
+        double[] 
+                    sampleArray = getStoredSample(),
+                    sampleForProcessing = new double[Constants.N_DIMENSIONS];
 
         System.arraycopy(sampleArray, 0, sampleForProcessing, 0, sampleForProcessing.length);
 
@@ -228,8 +264,16 @@ public class TrainingService extends Service {
     }
 
     public void getOriginalLabelForActivity() {
-        int hour, minute, row, col, position, label = 0;
-        int minHour = Constants.INIT_HR, maxHour;
+        int 
+            hour, 
+            minute, 
+            row, 
+            col, 
+            position, 
+            label = 0,
+            minHour = Constants.INIT_HR, 
+            maxHour;
+
         String stringSchedule;
         boolean[] schedule = new boolean[Constants.N_GRIDS];
         Calendar rightNow = Calendar.getInstance();
@@ -245,8 +289,6 @@ public class TrainingService extends Service {
             maxHour = Constants.INIT_HR + (Constants.N_ROWS - 1) / 2 - 1;
         }
 
-        Log.d(TAG, "Max Hour : " + maxHour);
-
         if (hour < Constants.INIT_HR || hour > maxHour) {
             label = 1;
         } else {
@@ -254,7 +296,7 @@ public class TrainingService extends Service {
             // calculate position of the current hour and min in the schedule saved
             row = Math.abs(Constants.INIT_HR - hour) * 2 + 1;
             row = (minute / 30) == 0 ? row : row + 1;
-            col = mSample.getOriginalDayOfWeek();
+            col = mUserActivity.getOriginalDayOfWeek();
             position = row * Constants.N_COLS + col;
             stringSchedule = mHelperInstance.getFromPreferences(R.string.key_schedule, "");
 
@@ -268,11 +310,9 @@ public class TrainingService extends Service {
             schedule = mHelperInstance.getGson().fromJson(stringSchedule, boolean[].class);
 
             if (position < Constants.N_GRIDS && schedule[position]) {
-                label = 1;
+                mUserActivity.setOriginalLabel(1);
             }
         }
-
-        mSample.setOriginalLabelForActivity(label);
     }
 
     public void handle() {
@@ -286,14 +326,17 @@ public class TrainingService extends Service {
              * updateGradient() and updateModel() called in handleResponse
              */
             fetchRemoteModel();
+
         } else {
             /**
-             * compute the gradient, and train the model
+             * if can't fetch the model from server, just add the sample to the DB and exit
              *
              */
-
-            fetchLocalModel();
-            processModel();
+            if(isNewSample){
+                addSample();
+            }
+            
+            stopSelf();
         }
     }
 
@@ -317,7 +360,6 @@ public class TrainingService extends Service {
                 factor = -((double) getOriginalLabelForSample() - probability) * probability * (1 - probability);
 
         mGradient = x.multiply(factor);
-        Log.d(TAG, "Computed Gradient : " + getVectorAsString(mGradient));
         saveGradient();
     }
 
@@ -336,17 +378,12 @@ public class TrainingService extends Service {
 
         mModelVector = mModelVector.subtract(mGradient.multiply(lambda / getSampleCount()));
 
-        Log.d(TAG, "Sample count " + getSampleCount());
-        Log.d(TAG, "Updated Gradient" + getVectorAsString(mGradient));
-        Log.d(TAG, "Updated Model " + getVectorAsString(mModelVector));
-
         saveModel();
         updateSampleCount();
     }
 
     public void saveModel() {
         mHelperInstance.saveToPreferences(R.string.key_latest_model, getVectorAsArray(mModelVector));
-        Log.d(TAG, "Saved Model " + getVectorAsString(mModelVector));
     }
 
     public double[] getVectorAsArray(Vector vector) {
@@ -364,7 +401,7 @@ public class TrainingService extends Service {
         Response.Listener<String> responseListener = new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
-                Log.d(TAG, "model received from server : " + response);
+                Log.d(TAG, "GET Response: Model = " + response);
 
                 try {
                     double[] modelArray = mHelperInstance.getGson().fromJson(response, double[].class);
@@ -379,8 +416,10 @@ public class TrainingService extends Service {
         Response.ErrorListener errorListener = new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                fetchLocalModel();
-                processModel();
+                if(isNewSample){
+                    addSample();
+                }
+                stopSelf();
             }
         };
 
@@ -389,7 +428,7 @@ public class TrainingService extends Service {
         addRequestToQueue(stringGETRequest, "");
     }
 
-    public void fetchLocalModel() {
+    /*public void fetchLocalModel() {
         String stringModel = HelperClass.getInstance().getFromPreferences(R.string.key_latest_model, "");
         // if some preferences are stored, restore it
         if (stringModel != "") {
@@ -397,7 +436,7 @@ public class TrainingService extends Service {
         } else {
             mModelVector = new BasicVector(new double[Constants.N_DIMENSIONS]);
         }
-    }
+    }*/
 
     public void processModel() {
         // store the fetched model as the latest
@@ -407,113 +446,40 @@ public class TrainingService extends Service {
         predict();
         updateModel();
 
-        addSample();
+        mSampleToSync = Arrays.toString(getStoredSample());
 
         if (isConnectedToNetwork()) {
-            
-            syncSamples();
-
+            syncModelAndSample();
+        }
+        else{
+            addSample();
         }
     }
 
     /**
-     *
      * send the gradient first, then the unsent samples
      * deletes the sent samples after receiving a response
-     * 
      */
-    public void syncSamples() {
+    public void syncModelAndSample() {
 
-        // send the device id
-        // email and the timestamp .. 
-        List<ExpandedSample> samples = ExpandedSample.findWithQuery(ExpandedSample.class, "Select * from Expanded_Sample ORDER BY id");
-        ExpandedSample sample;
+        Log.d(TAG, "POST Request : Gradient = " + mHelperInstance.getFromPreferences(R.string.key_latest_gradient, ""));
+        Log.d(TAG, "POST Request : Sample   = " + mSampleToSync);
 
-        mSamples.clear();
-
-        for (Iterator<ExpandedSample> iter = samples.iterator(); iter.hasNext(); ) {
-            sample = iter.next();
-            mSamples.add(sample.getSampleArray());
-
+        if(!isNewSample){
+            Log.d(TAG, "POSTed sample deleted from local DB");
+            mSampleToDelete.delete();
         }
-        Log.d(TAG, "Sending samples : " + mSamples);
-        sendDataToServer();
-
-        // send data before gradient, 
-        // to do the prediction at the server, before updating the model
-        sendGradientToServer();
-    }
-
-    public void predict() {
-        Vector x = getSampleForProcessing();
-
-        double wx = x.innerProduct(mModelVector);
-        double probability = 1 / (1 + Math.exp(-wx));
-        double[] sampleArray = getStoredSample();
-        int label = 0;
-
-        Log.i(TAG, " Probability.. " + probability);
-        if (probability > 0.5) {
-            label = 1;
-        }
-
-        // predicted label is at position N_DIMENSIONS
-        // index 0 - N_DIMENSIONS-1 have the features and bias
-        sampleArray[Constants.N_DIMENSIONS] = label;
-        mHelperInstance.saveToPreferences(R.string.key_sample, sampleArray);
-    }
-
-    public void sendDataToServer() {
-        StringRequest stringPUTRequest = new StringRequest(Request.Method.POST, mHelperInstance.getFromPreferences(R.string.key_api, DEFAULT_API_URL), new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-
-                mSamples.clear();
-                handlePOSTResponse(response);
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.e(TAG, "POSTing samples failed.. ");
-                handleError(error);
-            }
-        }) {
-            @Override
-            protected Map<String, String> getParams() {
-                Map<String, String> params = new HashMap<String, String>();
-
-                params.put("sample", "[" + TextUtils.join(", ", mSamples) + "]");
-                params.put("device_id", mHelperInstance.getFromPreferences(R.string.key_device_id, ""));
-
-                return params;
-            }
-
-            @Override
-            public Map<String, String> getHeaders() throws AuthFailureError {
-                Map<String, String> params = new HashMap<String, String>();
-                params.put("Content-Type", "application/x-www-form-urlencoded");
-                return params;
-            }
-        };
-
-        Log.i(TAG, "Making data post request..");
-        addRequestToQueue(stringPUTRequest, "");
-
-    }
-
-    public void sendGradientToServer() {
 
         StringRequest stringPUTRequest = new StringRequest(Request.Method.POST, mHelperInstance.getFromPreferences(R.string.key_api, DEFAULT_API_URL), new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
 
                 handlePOSTResponse(response);
-
             }
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Log.e(TAG, "POSTing model failed.. ");
+                Log.e(TAG, "POST failed");
                 handleError(error);
             }
         }) {
@@ -522,8 +488,8 @@ public class TrainingService extends Service {
                 Map<String, String> params = new HashMap<String, String>();
                 String stringGradient = mHelperInstance.getFromPreferences(R.string.key_latest_gradient, "");
 
-                Log.d(TAG, "Gradient sent : " + stringGradient);
                 params.put("gradient", stringGradient);
+                params.put("sample", mSampleToSync);
                 params.put("device_id", mHelperInstance.getFromPreferences(R.string.key_device_id, ""));
 
                 return params;
@@ -537,42 +503,72 @@ public class TrainingService extends Service {
             }
         };
 
-        Log.i(TAG, "Making gradient post request..");
         addRequestToQueue(stringPUTRequest, "");
+    }
 
+    public void predict() {
+        Vector x = getSampleForProcessing();
+        double wx, probability = 0;
+
+        try{
+            wx = x.innerProduct(mModelVector);
+            probability = 1 / (1 + Math.exp(-wx));
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+
+        double[] sampleArray = getStoredSample();
+        int label = 0;
+
+        if (probability > 0.5) {
+            label = 1;
+        }
+
+        // predicted label is at position N_DIMENSIONS
+        // index 0 - N_DIMENSIONS-1 have the features and bias
+        sampleArray[Constants.N_DIMENSIONS] = label;
+
+        if(isNewSample){
+            mHelperInstance.saveToPreferences(R.string.key_sample, sampleArray);   
+        }
+        else{
+            mHelperInstance.saveToPreferences(R.string.key_old_sample, sampleArray);
+        }
+        
     }
 
     public void handlePOSTResponse(String response) {
         JSONObject jsonResponse = null;
 
         /** response from POST request */
-        Log.i(TAG, "POST response .. " + response);
+        Log.d(TAG, "POST Response .. " + response);
         try {
             jsonResponse = new JSONObject(response);
 
             String cmd = jsonResponse.getString("cmd");
 
-            if (cmd.equalsIgnoreCase("delete")) {
+            if (cmd.equalsIgnoreCase("update_ack")) {
 
-                ExpandedSample.deleteAll(ExpandedSample.class);
-
+                /* do nothing */
+                /* just indicates sample and gradient has been processed on the server side */
+                
             } else if (cmd.equalsIgnoreCase(getString(R.string.key_api))) {
                 mHelperInstance.saveToPreferences(R.string.key_api, jsonResponse.getString("value"));
             } else if (cmd.equalsIgnoreCase(getString(R.string.key_lambda))) {
+                /**
+                 * when lambda is updated, reset the sample count to zero..to learn fresh
+                 *
+                 * */
                 mHelperInstance.saveToPreferences(R.string.key_lambda, jsonResponse.getString("value"));
+                clearSampleCount();
             } else if (cmd.equalsIgnoreCase(getString(R.string.key_n_activities))) {
                 mHelperInstance.saveToPreferences(R.string.key_n_activities, jsonResponse.getString("value"));
             } else if (cmd.equalsIgnoreCase(getString(R.string.key_sample_frequency))) {
                 mHelperInstance.saveToPreferences(R.string.key_sample_frequency, jsonResponse.getString("value"));
             }
 
-            // save command is the response from posting gradient
-            // post response from sample is yet to be received.. so don't stop it
-            // for all other commands, it's safe to stop the service
-            if(!cmd.equalsIgnoreCase("save")){
-                // stop the service..
-                stopSelf();
-            }
+            stopSelf();
 
         } catch (Exception e) {
             e.printStackTrace();

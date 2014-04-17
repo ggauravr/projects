@@ -31,7 +31,12 @@ public class ExpandedSample extends SugarRecord<ExpandedSample> implements Seria
         mSampleArray = HelperClass.getInstance().getGson().toJson(sampleArray);
     }
 
-    public String getSampleArray(){
+    public double[] getSampleArray(){
+        return HelperClass.getInstance().getGson().fromJson(mSampleArray, double[].class);
+
+    }
+
+    public String getSampleString(){
         return mSampleArray;
     }
 

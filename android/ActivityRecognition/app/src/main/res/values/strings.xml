@@ -33,6 +33,7 @@
     <string name="key_latest_model">model</string>
     <string name="key_latest_gradient">gradient</string>
     <string name="key_sample">sample</string>
+    <string name="key_old_sample">old_sample</string>
     <string name="key_activity_count">activity_count</string>
     <string name="key_sample_count">sample_count</string>
     <string name="key_api">api_address</string>

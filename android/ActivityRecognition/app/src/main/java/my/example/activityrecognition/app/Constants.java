@@ -14,7 +14,7 @@ public class Constants {
         N_COLS = 8,
         N_GRIDS = N_ROWS * N_COLS,
 
-        SAMPLE_FREQUENCY = 60000*3,
+        SAMPLE_FREQUENCY = 30000*1,
 
         N_ACTIVITIES = 6,
         N_RINGER_MODES = 3,

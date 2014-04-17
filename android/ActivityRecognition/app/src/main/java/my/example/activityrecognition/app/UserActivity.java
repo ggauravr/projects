@@ -16,13 +16,13 @@ import java.util.Date;
 /**
  *  @author : Gaurav Ramesh
  *  @email : gggauravr@gmail.com         
- * 
- *  @class : Sample
- *  @description: 
- * 
+ *
+ *  @class : UserActivity
+ *  @description:
+ *
  */
 
-public class Sample {
+public class UserActivity {
 
     private double[]
             mActivity = new double[Constants.N_ACTIVITIES],
@@ -42,7 +42,7 @@ public class Sample {
             mModel,
             mGradient;
 
-    public Sample(
+    public UserActivity(
                             /* parameters */
                             int _activity,
                             int _ringerMode,
@@ -78,18 +78,18 @@ public class Sample {
         mPredictedLabel = 0;
     }
 
-    public double[] getSampleArray(){
+    public double[] getUserActivityArray(){
         // this will be stored in preferences
         // extra parameters : predicted label and original label, last two in the same order
-        
+
         double[] sampleArray = new double[Constants.N_DIMENSIONS+2];
-        
+
         System.arraycopy(mActivity, 0, sampleArray, 0, mActivity.length);
         System.arraycopy(mRingerMode, 0, sampleArray, mActivity.length, mRingerMode.length);
         System.arraycopy(mDayOfWeek, 0, sampleArray, mActivity.length+mRingerMode.length, mDayOfWeek.length);
         System.arraycopy(mApproxTime, 0, sampleArray, mActivity.length+mRingerMode.length+mDayOfWeek.length, mApproxTime.length);
         System.arraycopy(mHour, 0, sampleArray, mActivity.length+mRingerMode.length+mDayOfWeek.length+mApproxTime.length, mHour.length);
-        
+
         sampleArray[Constants.N_DIMENSIONS-1] = 0; // bias, doesn't matter, will be changed to 1, when being sent to the server
         sampleArray[Constants.N_DIMENSIONS] = 0; // predicted label
         sampleArray[Constants.N_DIMENSIONS+1] = mOriginalLabel; // original label
@@ -97,8 +97,8 @@ public class Sample {
         return sampleArray;
     }
 
-    public Vector getSampleVector() {
-        Vector vector = new BasicVector(getSampleArray());
+    public Vector getUserActivityVector() {
+        Vector vector = new BasicVector(getUserActivityArray());
         return vector;
     }
 
